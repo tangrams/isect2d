@@ -61,35 +61,19 @@ inline Vec2 project(const Vec2& _p, const Vec2& _axis) {
 
 struct OBB {
 
-    OBB(double _cx, double _cy, double _a, double _w, double _h) {
-        Vec2 center(_cx, _cy);
-        Vec2 x( cos(_a), sin(_a));
-        Vec2 y(-sin(_a), cos(_a));
-
-        x = x * (_w / 2);
-        y = y * (_h / 2);
-
-        m_quad[0] = center - x - y; // lower-left
-        m_quad[1] = center + x - y; // lower-right
-        m_quad[2] = center + x + y; // uper-right
-        m_quad[3] = center - x + y; // uper-left
-
-        perpAxes();
+    OBB(double _cx, double _cy, double _a, double _w, double _h) :
+        m_center(Vec2(_cx, _cy)), m_angle(_a), m_width(_w), m_height(_h) {
+        update();
     }
 
     void move(const double _px, const double _py) {
-        Vec2 t(_px, _py);
-
-        for (int i = 0; i < 4; ++i) {
-            m_quad[i] = m_quad[i] + t;
-        }
-
-        perpAxes();
+        m_center = Vec2(_px, _py);
+        update();
     }
 
-    void perpAxes() {
-        m_axes[0] = (m_quad[2] - m_quad[3]).normalize();
-        m_axes[1] = (m_quad[2] - m_quad[1]).normalize();
+    void rotate(float _angle) {
+        m_angle = _angle;
+        update();
     }
 
     const Vec2* getQuad() const {
@@ -100,9 +84,42 @@ struct OBB {
         return m_axes;
     }
 
+    const Vec2& getCenter() const {
+        return m_center;
+    }
+
+    const double getAngle() const {
+        return m_angle;
+    }
+
 private:
+
+    void perpAxes() {
+        m_axes[0] = (m_quad[2] - m_quad[3]).normalize();
+        m_axes[1] = (m_quad[2] - m_quad[1]).normalize();
+    }
+
+    void update() {
+        Vec2 x( cos(m_angle), sin(m_angle));
+        Vec2 y(-sin(m_angle), cos(m_angle));
+
+        x = x * (m_width / 2);
+        y = y * (m_height / 2);
+
+        m_quad[0] = m_center - x - y; // lower-left
+        m_quad[1] = m_center + x - y; // lower-right
+        m_quad[2] = m_center + x + y; // uper-right
+        m_quad[3] = m_center - x + y; // uper-left
+
+        perpAxes();
+    }
+
     Vec2 m_quad[4];
     Vec2 m_axes[2];
+    Vec2 m_center;
+    double m_angle;
+    double m_width;
+    double m_height;
 };
 
 }
@@ -126,20 +143,29 @@ static isect2d::Vec2 projectToAxis(const isect2d::OBB& _obb, const isect2d::Vec2
 }
 
 static bool intersect(const isect2d::OBB& _a, const isect2d::OBB& _b) {
-    bool overlaps[2] = { false };
+    bool overlaps[4] = { false };
     const isect2d::Vec2* aaxes = _a.getAxes();
     const isect2d::Vec2* baxes = _b.getAxes();
 
     for (int i = 0; i < 2; ++i) {
         isect2d::Vec2 aproj = projectToAxis(_a, aaxes[i]);
-        isect2d::Vec2 bproj = projectToAxis(_b, baxes[i]);
+        isect2d::Vec2 bproj = projectToAxis(_b, aaxes[i]);
 
         if (bproj.x <= aproj.y && bproj.y >= aproj.x) {
             overlaps[i] = true;
         }
     }
 
-    return overlaps[0] && overlaps[1];
+    for (int i = 0; i < 2; ++i) {
+        isect2d::Vec2 aproj = projectToAxis(_a, baxes[i]);
+        isect2d::Vec2 bproj = projectToAxis(_b, baxes[i]);
+
+        if (bproj.x <= aproj.y && bproj.y >= aproj.x) {
+            overlaps[i + 2] = true;
+        }
+    }
+
+    return overlaps[0] && overlaps[1] && overlaps[2] && overlaps[3];
 }
 
 static std::set<std::pair<int, int>> intersect(const isect2d::OBB* _obbs1, const size_t _size1,

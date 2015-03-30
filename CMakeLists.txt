@@ -1,6 +1,31 @@
 cmake_minimum_required(VERSION 2.8)
-project(sec2d)
+project(isect2d)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++0x -stdlib=libc++ -g -O0")
 
-add_executable(sec2d.out tests/main.cpp src/isect2d.h)
+find_package(PkgConfig REQUIRED)
+pkg_search_module(GLFW REQUIRED glfw3)
+
+set(EXECUTABLE_NAME isect2d.out)
+
+if(NOT GLFW_FOUND)
+    message(SEND_ERROR "GLFW not found")
+    return()
+else()
+    include_directories(${GLFW_INCLUDE_DIRS})
+    message(STATUS "Found GLFW ${GLFW_PREFIX}")
+endif()
+
+list(APPEND GLFW_LDFLAGS
+    "-framework OpenGL"
+    "-framework Cocoa"
+    "-framework IOKit"
+    "-framework CoreFoundation"
+    "-framework CoreVideo")
+
+include_directories(include)
+
+add_executable(${EXECUTABLE_NAME} tests/main.cpp include/isect2d.h)
+
+target_link_libraries(${EXECUTABLE_NAME} ${GLFW_LDFLAGS})
+

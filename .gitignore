@@ -4,6 +4,12 @@
 *.o
 *.obj
 
+# vim
+*.swp
+
+# build
+build/
+
 # Precompiled Headers
 *.gch
 *.pch
