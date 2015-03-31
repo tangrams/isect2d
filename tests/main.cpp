@@ -2,25 +2,34 @@
 
 #include <iostream>
 #include <cmath>
+#include <vector>
 
 #include <GLFW/glfw3.h>
 
 GLFWwindow* window;
 float width = 800;
 float height = 600;
+float dpiRatio = 1;
 
-isect2d::OBB obb1(300.0, 270.0, 1.4, 40.0, 120.0);
+isect2d::OBB obb1(300.0, 270.0, 1.4, 10.0, 10.0);
 isect2d::OBB obb2(300.0, 300.0, 0.0, 40.0, 120.0);
 
 bool pause = false;
 
+std::vector<isect2d::OBB> obbs;
+
 void update() {
     double time = glfwGetTime();
     if(!pause) {
+        obbs.clear();
+
         obb1.move(300.0 + 100.0 * cos(time), 300.0);
         obb1.rotate(time / 10.0);
-        obb2.move(300.0, 300.0 + 50.0 * cos(time));
+        obb2.move(300.0, 300.0 + 250.0 * cos(time));
         obb2.rotate(time / 30.0);
+
+        obbs.push_back(obb1);
+        obbs.push_back(obb2);
     }
 }
 
@@ -42,7 +51,11 @@ void init() {
         glfwTerminate();
     }
 
+    int fbWidth, fbHeight;
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
     glfwSetKeyCallback(window, keyCallback);
+
+    dpiRatio = fbWidth / width;
 
     glfwMakeContextCurrent(window);
 }
@@ -79,11 +92,10 @@ void drawOBB(const isect2d::OBB& obb, const isect2d::OBB& other, bool isect) {
         for(int j = 0; j < 2; ++j) {
             isect2d::Vec2 proj = project(quad[i], axes[j]);
             isect2d::Vec2 projOther = project(otherQuad[i], axes[j]);
-            double d = proj.dot(axes[j]);
 
-            glColor4f(1.0, 1.0, 1.0, 0.6);
+            glColor4f(1.0, 1.0, 1.0, 0.5);
             cross(proj.x, proj.y);
-            glColor4f(1.0, 0.5, 1.0, 0.6);
+            glColor4f(1.0, 0.5, 1.0, 0.5);
             cross(projOther.x, projOther.y);
         }
     }
@@ -101,8 +113,8 @@ void render() {
     while (!glfwWindowShouldClose(window)) {
         update();
 
-        glViewport(0, 0, width, height);
-        glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
+        glViewport(0, 0, width * dpiRatio, height * dpiRatio);
+        glClearColor(0.2f, 0.2f, 0.22f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
@@ -114,6 +126,11 @@ void render() {
         bool isect = intersect(obb1, obb2);
         drawOBB(obb1, obb2, isect);
         drawOBB(obb2, obb1, isect);
+
+        //auto pairs = intersect(&obbs[0], obbs.size(), &obbs[0], obbs.size());
+        //for (auto pair : pairs) {
+        //    drawOBB(obbs[pair.first], obbs[pair.second], true);
+        //}
 
         glfwSwapBuffers(window);
 

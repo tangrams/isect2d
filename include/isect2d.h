@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <limits>
 #include <set>
+#include <iostream>
 
 namespace isect2d {
 struct OBB;
@@ -54,6 +55,14 @@ struct Vec2 {
     }
 };
 
+bool operator==(const Vec2& lh, const Vec2& rh) {
+    return lh.x == rh.x && lh.y == rh.y;
+}
+
+bool operator!=(const Vec2& lh, const Vec2& rh) {
+    return !(lh == rh);
+}
+
 inline Vec2 project(const Vec2& _p, const Vec2& _axis) {
     double l = _axis.length();
     return _axis * _p.dot(_axis) * (1 / (l * l));
@@ -88,8 +97,21 @@ struct OBB {
         return m_center;
     }
 
-    const double getAngle() const {
+    double getAngle() const {
         return m_angle;
+    }
+
+    double getWidth() const {
+        return m_width;
+    }
+
+    double getHeight() const {
+        return m_height;
+    }
+
+    double radius() const {
+        Vec2 extent(m_width, m_height);
+        return extent.length();
     }
 
 private:
@@ -122,6 +144,20 @@ private:
     double m_height;
 };
 
+struct AABB : OBB {
+    AABB(double _cx, double _cy, double _w, double _h) : OBB(_cx, _cy, 0.0, _w, _h) {}
+
+    void rotate(float _angle) = delete;
+};
+
+bool operator==(const OBB& lh, const OBB& rh) {
+    return lh.getCenter() == rh.getCenter() && lh.getAngle() == rh.getAngle();
+}
+
+bool operator!=(const OBB& lh, const OBB& rh) {
+    return !(lh == rh);
+}
+
 }
 
 static isect2d::Vec2 projectToAxis(const isect2d::OBB& _obb, const isect2d::Vec2& axis) {
@@ -142,35 +178,47 @@ static isect2d::Vec2 projectToAxis(const isect2d::OBB& _obb, const isect2d::Vec2
     return isect2d::Vec2(min, max);
 }
 
+static bool axisCollide(const isect2d::OBB& _a, const isect2d::OBB& _b, const isect2d::Vec2* axes) {
+    for (int i = 0; i < 2; ++i) {
+        isect2d::Vec2 aproj = projectToAxis(_a, axes[i]);
+        isect2d::Vec2 bproj = projectToAxis(_b, axes[i]);
+
+        if (bproj.x > aproj.y || bproj.y < aproj.x) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static bool intersect(const isect2d::OBB& _a, const isect2d::OBB& _b) {
-    bool overlaps[4] = { false };
-    const isect2d::Vec2* aaxes = _a.getAxes();
-    const isect2d::Vec2* baxes = _b.getAxes();
+    const isect2d::Vec2& c1 = _a.getCenter();
+    const isect2d::Vec2& c2 = _b.getCenter();
+    const isect2d::Vec2& d = c2 - c1;
+    double r = std::max(_a.radius(), _b.radius());
 
-    for (int i = 0; i < 2; ++i) {
-        isect2d::Vec2 aproj = projectToAxis(_a, aaxes[i]);
-        isect2d::Vec2 bproj = projectToAxis(_b, aaxes[i]);
-
-        if (bproj.x <= aproj.y && bproj.y >= aproj.x) {
-            overlaps[i] = true;
-        }
-    }
-
-    for (int i = 0; i < 2; ++i) {
-        isect2d::Vec2 aproj = projectToAxis(_a, baxes[i]);
-        isect2d::Vec2 bproj = projectToAxis(_b, baxes[i]);
-
-        if (bproj.x <= aproj.y && bproj.y >= aproj.x) {
-            overlaps[i + 2] = true;
-        }
-    }
-
-    return overlaps[0] && overlaps[1] && overlaps[2] && overlaps[3];
+    return d.length() <= r && axisCollide(_a, _b, _a.getAxes()) && axisCollide(_a, _b, _b.getAxes());
 }
 
 static std::set<std::pair<int, int>> intersect(const isect2d::OBB* _obbs1, const size_t _size1,
                                                const isect2d::OBB* _obbs2, const size_t _size2) {
+    std::set<std::pair<int, int>> pairs;
 
+    // bruteforce
+    for (int i = 0; i < _size1; ++i) {
+        const isect2d::OBB& obb1 = _obbs1[i];
+        for (int j = 0; j < _size2; ++j) {
+            const isect2d::OBB& obb2 = _obbs2[j];
+
+            if (obb1 != obb2) {
+                if (intersect(obb1, obb2)) {
+                    pairs.insert({ i, j });
+                }
+            }
+        }
+    }
+
+    return pairs;
 }
 
 #endif
