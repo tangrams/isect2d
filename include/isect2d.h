@@ -207,7 +207,7 @@ static std::set<std::pair<int, int>> intersect(const isect2d::OBB* _obbs1, const
     // bruteforce
     for (int i = 0; i < _size1; ++i) {
         const isect2d::OBB& obb1 = _obbs1[i];
-        for (int j = 0; j < _size2; ++j) {
+        for (int j = i + 1; j < _size2; ++j) {
             const isect2d::OBB& obb2 = _obbs2[j];
 
             if (obb1 != obb2) {
