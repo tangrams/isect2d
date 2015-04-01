@@ -168,17 +168,6 @@ void render() {
             drawOBB(obb, false);
         }
 
-        const clock_t beginBroadPhaseTime = clock();
-
-        std::vector<isect2d::AABB> aabbs;
-
-        for (auto& obb : obbs) {
-            auto aabb = obb.getExtent();
-            aabb.m_userData = (void*)&obb;
-            aabbs.push_back(aabb);
-        }
-
-
         const clock_t startBruteForce = clock();
         std::set<std::pair<int, int>> p;
         for (int i = 0; i < obbs.size(); ++i) {
@@ -188,14 +177,21 @@ void render() {
                 }
             }
         }
-        std::cout << "bruteforce " << float(clock() - startBruteForce) / CLOCKS_PER_SEC * 1000 << "ms" << " ";
+        std::cout << "bruteforce: " << float(clock() - startBruteForce) / CLOCKS_PER_SEC * 1000 << "ms ";
 
         // broad phase
+        const clock_t beginBroadPhaseTime = clock();
+
+        std::vector<isect2d::AABB> aabbs;
+        for (auto& obb : obbs) {
+            auto aabb = obb.getExtent();
+            aabb.m_userData = (void*)&obb;
+            aabbs.push_back(aabb);
+        }
+
         auto pairs = intersect(&aabbs[0], aabbs.size(), &aabbs[0], aabbs.size());
 
-        const clock_t endBroadPhaseTime = clock();
-
-        std::cout << float(endBroadPhaseTime - beginBroadPhaseTime) / CLOCKS_PER_SEC * 1000 << "ms";
+        std::cout << "broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
 
         clock_t narrowTime = 0;
 
@@ -209,9 +205,7 @@ void render() {
             // narrow phase
             beginNarrowTime = clock();
             bool isect = intersect(obb1, obb2);
-            endNarrowTime = clock();
-
-            narrowTime += (endBroadPhaseTime - beginBroadPhaseTime);
+            narrowTime += (clock() - beginNarrowTime);
 
             if (isect) {
 
@@ -223,7 +217,7 @@ void render() {
 
         }
 
-        std::cout << " " << float(narrowTime) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
+        std::cout << "narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
 
         glfwSwapBuffers(window);
 
