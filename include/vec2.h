@@ -24,6 +24,10 @@ struct Vec2 {
         return Vec2(x * _b, y * _b);
     }
 
+    float operator[](const int i) {
+        return i == 0 ? x : y;
+    }
+
     float length() const {
         return sqrt(x * x + y * y);
     }

@@ -8,6 +8,7 @@
 
 #include "aabb.h"
 #include "vec2.h"
+#include "bvh.h"
 
 static std::set<std::pair<int, int>> intersect(const isect2d::AABB* _aabbs1, const size_t _size1,
                                                const isect2d::AABB* _aabbs2, const size_t _size2) {

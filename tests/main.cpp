@@ -7,11 +7,13 @@
 #include <vector>
 #include <memory>
 #include <random>
+#include <stack>
 
 #include <GLFW/glfw3.h>
 
 //#define AXIS_DRAW
 #define N_BOX 100
+#define CIRCLES
 
 GLFWwindow* window;
 float width = 800;
@@ -34,13 +36,13 @@ void update() {
             float r1 = rand_0_1(10);
             float r2 = rand_0_1(20);
             float r3 = rand_0_1(M_PI);
-            auto center = obb.getCenter();
+            auto centroid = obb.getCentroid();
 
             if (++i % 2 == 0) {
-                obb.move(center.x, center.y + .02 * cos(time * 0.25) * r2);
+                obb.move(centroid.x, centroid.y + .02 * cos(time * 0.25) * r2);
                 obb.rotate(cos(r3) * 0.1 + obb.getAngle());
             } else {
-                obb.move(center.x + 0.1 * cos(time) * r1, center.y);
+                obb.move(centroid.x + 0.1 * cos(time) * r1, centroid.y);
                 obb.rotate(cos(r2) * 0.1 + obb.getAngle());
             }
         }
@@ -55,6 +57,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 void initBBoxes() {
 
+#ifdef CIRCLES
     int n = N_BOX;
     float o = (2 * M_PI) / n;
     float size = 250;
@@ -67,6 +70,20 @@ void initBBoxes() {
                     sin(o * i) * size + height / 2, r,
                     r + boxSize * 8, r * boxSize / 3 + boxSize));
     }
+#else
+    int n = 4;
+    float o = (2 * M_PI) / n;
+    float size = 50;
+    float boxSize = 10;
+
+    for (int i = 0; i < n; ++i) {
+        float r = rand_0_1(20);
+
+        obbs.push_back(OBB(cos(o * i) * size + width / 2,
+                    sin(o * i) * size + height / 2, r,
+                    r + boxSize * 8, r * boxSize / 3 + boxSize));
+    }
+#endif
 
 }
 
@@ -105,14 +122,17 @@ void cross(float x, float y, float size = 3) {
 }
 
 void drawAABB(const isect2d::AABB& _aabb) {
-    line(_aabb.getMin().x, _aabb.getMin().y, _aabb.getMax().x, _aabb.getMax().y);
+    line(_aabb.getMin().x, _aabb.getMin().y, _aabb.getMin().x, _aabb.getMax().y);
+    line(_aabb.getMin().x, _aabb.getMin().y, _aabb.getMax().x, _aabb.getMin().y);
+    line(_aabb.getMax().x, _aabb.getMin().y, _aabb.getMax().x, _aabb.getMax().y);
+    line(_aabb.getMin().x, _aabb.getMax().y, _aabb.getMax().x, _aabb.getMax().y);
 }
 
 void drawOBB(const OBB& obb, bool isect) {
     const isect2d::Vec2* quad = obb.getQuad();
     const isect2d::Vec2* axes = obb.getAxes();
 
-    drawAABB(isect2d::AABB(obb.getExtent()));
+    //drawAABB(isect2d::AABB(obb.getExtent()));
 
     for(int i = 0; i < 4; ++i) {
         if(isect) {
@@ -125,7 +145,7 @@ void drawOBB(const OBB& obb, bool isect) {
         isect2d::Vec2 end = quad[(i + 1) % 4];
         line(start.x, start.y, end.x, end.y);
         glColor4f(1.0, 1.0, 1.0, 0.1);
-        cross(obb.getCenter().x, obb.getCenter().y, 2);
+        cross(obb.getCentroid().x, obb.getCentroid().y, 2);
 
 #ifdef AXIS_DRAW
         // draw separating axes and the projections
@@ -167,57 +187,114 @@ void render() {
         for (auto& obb : obbs) {
             drawOBB(obb, false);
         }
+        
+        
 
-        const clock_t startBruteForce = clock();
-        std::set<std::pair<int, int>> p;
-        for (int i = 0; i < obbs.size(); ++i) {
-            for (int j = i + 1; j < obbs.size(); ++j) {
-                if (intersect(obbs[i], obbs[j])) {
-                    p.insert({ i, j });
+        {
+            const clock_t startBruteForce = clock();
+            std::set<std::pair<int, int>> p;
+            for (int i = 0; i < obbs.size(); ++i) {
+                for (int j = i + 1; j < obbs.size(); ++j) {
+                    if (intersect(obbs[i], obbs[j])) {
+                        p.insert({ i, j });
+                    }
                 }
             }
+            std::cout << "bruteforce: " << float(clock() - startBruteForce) / CLOCKS_PER_SEC * 1000 << "ms ";
         }
-        std::cout << "bruteforce: " << float(clock() - startBruteForce) / CLOCKS_PER_SEC * 1000 << "ms ";
 
         // broad phase
-        const clock_t beginBroadPhaseTime = clock();
-
         std::vector<isect2d::AABB> aabbs;
-        for (auto& obb : obbs) {
-            auto aabb = obb.getExtent();
-            aabb.m_userData = (void*)&obb;
-            aabbs.push_back(aabb);
+        std::set<std::pair<int, int>> pairs;
+        {
+            const clock_t beginBroadPhaseTime = clock();
+
+            for (auto& obb : obbs) {
+                auto aabb = obb.getExtent();
+                aabb.m_userData = (void*)&obb;
+                aabbs.push_back(aabb);
+            }
+            pairs = intersect(&aabbs[0], aabbs.size(), &aabbs[0], aabbs.size());
+
+            std::cout << "broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
         }
 
-        auto pairs = intersect(&aabbs[0], aabbs.size(), &aabbs[0], aabbs.size());
+        
+        {
+            std::vector<isect2d::AABB*> aabbPointers;
+            for (auto& aabb : aabbs) {
+                aabbPointers.push_back(&aabb);
+            }
+            const clock_t bvhBegin = clock();
+            isect2d::BVH bvh(aabbPointers);
+            std::cout << "bvhtime: " << (float(clock() - bvhBegin) / CLOCKS_PER_SEC) * 1000 << "ms ";
+            
+            isect2d::BVHNode* node = bvh.getRoot();
+            std::stack<isect2d::BVHNode*> todo;
+            todo.push(node);
+            
+            while (todo.size() != 0) {
+                node = todo.top();
+                todo.pop();
+                
+                if (node == nullptr)
+                    continue;
+                if (node->m_proxy)
+                    drawAABB(*node->m_proxy);
+                if (node->isLeaf())
+                    //drawAABB(*node->m_aabb);
+                
+                todo.push(node->m_leftChild);
+                todo.push(node->m_rightChild);
+            }
+        }
 
-        std::cout << "broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
 
-        clock_t narrowTime = 0;
 
-        for (auto pair : pairs) {
-            clock_t beginNarrowTime;
-            clock_t endNarrowTime;
+        //isect2d::AABB extent;
+        //for (auto& aabb : aabbs) {
+        //    extent = isect2d::unionAABB(extent, aabb);
+        //}
+        //drawAABB(extent);
 
-            auto obb1 = obbs[pair.first];
-            auto obb2 = obbs[pair.second];
+        //isect2d::Dimension dim = extent.maxExtent();
+        //std::cout << dim << std::endl;
+        //isect2d::Vec2 split = (extent.m_min[dim] + extent.m_max[dim]) * 0.5f;
+        //if(dim == isect2d::X) {
+        //    cross(split.length(), 10);
+        //} else {
+        //    cross(10, split.length());
+        //}
 
-            // narrow phase
-            beginNarrowTime = clock();
-            bool isect = intersect(obb1, obb2);
-            narrowTime += (clock() - beginNarrowTime);
 
-            if (isect) {
 
-                drawOBB(obb1, true);
-                drawOBB(obb2, true);
+        {
+            clock_t narrowTime = 0;
 
-                line(obb1.getCenter().x, obb1.getCenter().y, obb2.getCenter().x, obb2.getCenter().y);
+            for (auto pair : pairs) {
+                clock_t beginNarrowTime;
+                clock_t endNarrowTime;
+
+                auto obb1 = obbs[pair.first];
+                auto obb2 = obbs[pair.second];
+
+                // narrow phase
+                beginNarrowTime = clock();
+                bool isect = intersect(obb1, obb2);
+                narrowTime += (clock() - beginNarrowTime);
+
+                if (isect) {
+
+                    drawOBB(obb1, true);
+                    drawOBB(obb2, true);
+
+                    line(obb1.getCentroid().x, obb1.getCentroid().y, obb2.getCentroid().x, obb2.getCentroid().y);
+                }
+
             }
 
+            std::cout << "narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
         }
-
-        std::cout << "narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
 
         glfwSwapBuffers(window);
 

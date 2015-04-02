@@ -6,13 +6,13 @@
 struct OBB {
 
     OBB(float _cx, float _cy, float _a, float _w, float _h) :
-        m_center(isect2d::Vec2(_cx, _cy)), m_angle(_a), m_width(_w), m_height(_h) {
+        m_centroid(isect2d::Vec2(_cx, _cy)), m_angle(_a), m_width(_w), m_height(_h) {
 
         update();
     }
 
     void move(const float _px, const float _py) {
-        m_center = isect2d::Vec2(_px, _py);
+        m_centroid = isect2d::Vec2(_px, _py);
 
         update();
     }
@@ -31,8 +31,8 @@ struct OBB {
         return m_axes;
     }
 
-    const isect2d::Vec2& getCenter() const {
-        return m_center;
+    const isect2d::Vec2& getCentroid() const {
+        return m_centroid;
     }
 
     float getAngle() const {
@@ -81,10 +81,10 @@ private:
         x = x * (m_width / 2);
         y = y * (m_height / 2);
 
-        m_quad[0] = m_center - x - y; // lower-left
-        m_quad[1] = m_center + x - y; // lower-right
-        m_quad[2] = m_center + x + y; // uper-right
-        m_quad[3] = m_center - x + y; // uper-left
+        m_quad[0] = m_centroid - x - y; // lower-left
+        m_quad[1] = m_centroid + x - y; // lower-right
+        m_quad[2] = m_centroid + x + y; // uper-right
+        m_quad[3] = m_centroid - x + y; // uper-left
 
         perpAxes();
     }
@@ -94,13 +94,13 @@ private:
     float m_angle;
 
     isect2d::Vec2 m_axes[2];
-    isect2d::Vec2 m_center;
+    isect2d::Vec2 m_centroid;
     isect2d::Vec2 m_quad[4];
 
 };
 
 bool operator==(const OBB& lh, const OBB& rh) {
-    return lh.getCenter() == rh.getCenter() && lh.getAngle() == rh.getAngle();
+    return lh.getCentroid() == rh.getCentroid() && lh.getAngle() == rh.getAngle();
 }
 
 bool operator!=(const OBB& lh, const OBB& rh) {
