@@ -16,32 +16,27 @@ struct BVHNode {
     bool isLeaf() {
         return m_aabb != nullptr;
     }
-    
 };
 
 class CentroidSorter {
-    
     private:
-    
         Dimension m_dim;
 
     public:
-    
         CentroidSorter(Dimension _dim) : m_dim(_dim) {}
 
-        bool operator() (AABB* _a, AABB* _b) {
-            Vec2 c1 = _a->getCentroid();
-            Vec2 c2 = _b->getCentroid();
+        bool operator() (const AABB& _a, const AABB& _b) {
+            Vec2 c1 = _a.getCentroid();
+            Vec2 c2 = _b.getCentroid();
 
             return c1[m_dim] < c2[m_dim];
         }
-
 };
 
 struct BVH {
 
-    BVH(std::vector<AABB*>& _aabbs) {
-        build(_aabbs);
+    BVH(const std::vector<AABB>& _aabbs) : m_aabbs(_aabbs) {
+        build();
     }
     
     BVHNode* getRoot() {
@@ -74,22 +69,26 @@ struct BVH {
 private:
     
     BVHNode* m_root;
+    std::vector<AABB> m_aabbs;
 
-    void build(std::vector<AABB*>& _aabbs) {
-        m_root = subdivide(_aabbs, _aabbs.begin(), _aabbs.end());
+    void build() {
+        m_root = subdivide(m_aabbs.begin(), m_aabbs.end());
     }
 
-    BVHNode* subdivide(std::vector<AABB*>& _aabbs, std::vector<AABB*>::iterator _begin, std::vector<AABB*>::iterator _end) {
-
+    BVHNode* subdivide(std::vector<AABB>::iterator _begin, std::vector<AABB>::iterator _end) {
+        if (_begin == m_aabbs.end()) {
+            return nullptr;
+        }
+        
         // leaf
         if (_begin == _end) {
-            return new BVHNode { nullptr, *_begin, nullptr, nullptr };
+            return new BVHNode { nullptr, &(*_begin), nullptr, nullptr };
         }
 
         AABB* extent = new AABB();
 
         for (auto it = _begin; it != _end; ++it) {
-            *extent = unionAABB(*extent, *(*it));
+            *extent = unionAABB(*extent, (*it));
         }
 
         // find the separating axis dimension (SAH)
@@ -102,15 +101,15 @@ private:
 
         int isplit = 0;
         for (auto it = _begin; it != _end; ++it) {
-            if ((*it)->getCentroid()[dim] < length) {
+            if ((*it).getCentroid()[dim] < length) {
                 isplit++;
             } else {
                 break;
             }
         }
 
-        BVHNode* leftChild = subdivide(_aabbs, _begin, _begin + isplit);
-        BVHNode* rightChild = subdivide(_aabbs, _begin + isplit + 1, _end);
+        BVHNode* leftChild = subdivide(_begin, _begin + isplit);
+        BVHNode* rightChild = subdivide(_begin + isplit + 1, _end);
 
         return new BVHNode { extent, nullptr, leftChild, rightChild };
     }

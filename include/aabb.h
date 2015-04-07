@@ -32,7 +32,7 @@ struct AABB {
         return m_max;
     }
 
-    Vec2 getCentroid() {
+    Vec2 getCentroid() const {
         return (m_min + m_max) * 0.5;
     }
 

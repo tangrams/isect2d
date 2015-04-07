@@ -10,13 +10,12 @@
 #include "vec2.h"
 #include "bvh.h"
 
-static std::set<std::pair<int, int>> intersect(const isect2d::AABB* _aabbs1, const size_t _size1,
-                                               const isect2d::AABB* _aabbs2, const size_t _size2) {
+static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs1, const std::vector<isect2d::AABB>& _aabbs2) {
     std::set<std::pair<int, int>> pairs;
 
     // bruteforce
-    for (int i = 0; i < _size1; ++i) {
-        for (int j = i + 1; j < _size2; ++j) {
+    for (int i = 0; i < _aabbs1.size(); ++i) {
+        for (int j = i + 1; j < _aabbs2.size(); ++j) {
             if (_aabbs1[i].intersect(_aabbs2[j])) {
                 pairs.insert({ i, j });
             }

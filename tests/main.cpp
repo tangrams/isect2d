@@ -214,19 +214,15 @@ void render() {
                 aabb.m_userData = (void*)&obb;
                 aabbs.push_back(aabb);
             }
-            pairs = intersect(&aabbs[0], aabbs.size(), &aabbs[0], aabbs.size());
+            pairs = intersect(aabbs, aabbs);
 
             std::cout << "broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
         }
 
         
         {
-            std::vector<isect2d::AABB*> aabbPointers;
-            for (auto& aabb : aabbs) {
-                aabbPointers.push_back(&aabb);
-            }
             const clock_t bvhBegin = clock();
-            isect2d::BVH bvh(aabbPointers);
+            isect2d::BVH bvh(aabbs);
             std::cout << "bvhtime: " << (float(clock() - bvhBegin) / CLOCKS_PER_SEC) * 1000 << "ms ";
             
             isect2d::BVHNode* node = bvh.getRoot();
@@ -241,8 +237,9 @@ void render() {
                     continue;
                 if (node->m_proxy)
                     drawAABB(*node->m_proxy);
-                if (node->isLeaf())
-                    //drawAABB(*node->m_aabb);
+                if (node->isLeaf()) {
+                    drawAABB(*node->m_aabb);
+                }
                 
                 todo.push(node->m_leftChild);
                 todo.push(node->m_rightChild);
