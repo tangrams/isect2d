@@ -12,7 +12,7 @@
 #include <GLFW/glfw3.h>
 
 //#define AXIS_DRAW
-#define N_BOX 100
+#define N_BOX 50
 #define CIRCLES
 
 GLFWwindow* window;
@@ -214,13 +214,13 @@ void render() {
                 aabb.m_userData = (void*)&obb;
                 aabbs.push_back(aabb);
             }
-            pairs = intersect(aabbs, aabbs);
+            pairs = intersect(aabbs);
 
             std::cout << "broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
         }
 
         
-        {
+        /*{
             const clock_t bvhBegin = clock();
             isect2d::BVH bvh(aabbs);
             std::cout << "bvhtime: " << (float(clock() - bvhBegin) / CLOCKS_PER_SEC) * 1000 << "ms ";
@@ -244,7 +244,7 @@ void render() {
                 todo.push(node->m_leftChild);
                 todo.push(node->m_rightChild);
             }
-        }
+        }*/
 
 
 

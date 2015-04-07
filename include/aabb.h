@@ -61,5 +61,13 @@ AABB unionAABB(const AABB& _aabb1, const AABB& _aabb2) {
 
     return aabb;
 }
+    
+bool operator==(const AABB& lh, const AABB& rh) {
+    return lh.m_min == rh.m_min && lh.m_max == rh.m_max;
+}
+
+bool operator!=(const AABB& lh, const AABB& rh) {
+    return !(lh == rh);
+}
 
 }
