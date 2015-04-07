@@ -14,13 +14,14 @@
 
 static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs) {
     std::set<std::pair<int, int>> pairs;
-
-    int nbIter = 0;
+    
+    if (_aabbs.size() == 0) {
+        return pairs;
+    }
     
 #ifdef BRUTEFORCE
     for (int i = 0; i < _aabbs.size(); ++i) {
         for (int j = i + 1; j < _aabbs.size(); ++j) {
-            nbIter++;
             if (_aabbs[i].intersect(_aabbs[j])) {
                 pairs.insert({ i, j });
             }
@@ -28,6 +29,11 @@ static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>&
     }
 #else
     isect2d::BVH bvh(_aabbs);
+    
+    if (!bvh.getRoot()) {
+        return pairs;
+    }
+    
     isect2d::BVHNode* node;
     std::stack<isect2d::BVHNode*> todo;
     
@@ -43,17 +49,15 @@ static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>&
                 continue;
             }
             
-            if (node->m_proxy && aabb.intersect(*node->m_proxy)) {
-                todo.push(node->m_leftChild);
-                todo.push(node->m_rightChild);
-            }
-            
-            nbIter++;
-            
-            if (node->isLeaf() && aabb != *node->m_aabb) {
-                if (aabb.intersect(*node->m_aabb)) {
-                    auto it = std::find(_aabbs.begin(), _aabbs.end(), *node->m_aabb);
+            if (node->isLeaf()) {
+                if (aabb != *node->m_aabb && aabb.intersect(*node->m_aabb)) {
+                    auto it = std::find(_aabbs.begin() + i, _aabbs.end(), *node->m_aabb);
                     pairs.insert({ i, it - _aabbs.begin() });
+                }
+            } else {
+                if (aabb.intersect(*node->m_proxy)) {
+                    todo.push(node->m_leftChild);
+                    todo.push(node->m_rightChild);
                 }
             }
         }

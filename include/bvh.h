@@ -34,8 +34,9 @@ class CentroidSorter {
 };
 
 struct BVH {
-
+    
     BVH(const std::vector<AABB>& _aabbs) : m_aabbs(_aabbs) {
+        m_depth = 0;
         build();
     }
     
@@ -43,9 +44,14 @@ struct BVH {
         return m_root;
     }
     
+    int getDepth() const {
+        return m_depth;
+    }
+    
     ~BVH() {
         BVHNode* node;
         std::stack<BVHNode*> todo;
+        
         todo.push(m_root);
         
         while (todo.size() != 0) {
@@ -68,14 +74,15 @@ struct BVH {
 
 private:
     
-    BVHNode* m_root;
     std::vector<AABB> m_aabbs;
+    BVHNode* m_root;
+    size_t m_depth;
 
     void build() {
         m_root = subdivide(m_aabbs.begin(), m_aabbs.end());
     }
 
-    BVHNode* subdivide(std::vector<AABB>::iterator _begin, std::vector<AABB>::iterator _end) {
+    BVHNode* subdivide(const std::vector<AABB>::iterator& _begin, const std::vector<AABB>::iterator& _end) {
         if (_begin == m_aabbs.end()) {
             return nullptr;
         }
@@ -90,11 +97,14 @@ private:
         for (auto it = _begin; it != _end; ++it) {
             *extent = unionAABB(*extent, (*it));
         }
-
+        
         // find the separating axis dimension (SAH)
         Dimension dim = extent->maxExtent();
-        Vec2 split = (extent->m_min[dim] + extent->m_max[dim]) * 0.5f;
-        float length = split.length();
+        float length = (extent->m_min[dim] + extent->m_max[dim]) * 0.5;
+        
+        if (length < 0.1) {
+        
+        }
 
         // partition
         std::sort(_begin, _end, CentroidSorter(dim));
@@ -107,10 +117,14 @@ private:
                 break;
             }
         }
-
+        
         BVHNode* leftChild = subdivide(_begin, _begin + isplit);
         BVHNode* rightChild = subdivide(_begin + isplit + 1, _end);
-
+        
+        if (_end != m_aabbs.end()) {
+            *extent = unionAABB(*extent, *_end);
+        }
+        
         return new BVHNode { extent, nullptr, leftChild, rightChild };
     }
     

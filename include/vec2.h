@@ -24,7 +24,7 @@ struct Vec2 {
         return Vec2(x * _b, y * _b);
     }
 
-    float operator[](const int i) {
+    float operator[](const int i) const {
         return i == 0 ? x : y;
     }
 
