@@ -101,10 +101,6 @@ private:
         // find the separating axis dimension (SAH)
         Dimension dim = extent->maxExtent();
         float length = (extent->m_min[dim] + extent->m_max[dim]) * 0.5;
-        
-        if (length < 0.1) {
-        
-        }
 
         // partition
         std::sort(_begin, _end, CentroidSorter(dim));
