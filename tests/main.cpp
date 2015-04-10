@@ -1,5 +1,3 @@
-
-#include "obb.h"
 #include "isect2d.h"
 
 #include <iostream>
@@ -11,6 +9,8 @@
 
 #include <GLFW/glfw3.h>
 
+using namespace isect2d;
+
 #define N_BOX 60
 #define CIRCLES
 
@@ -18,6 +18,7 @@ GLFWwindow* window;
 float width = 800;
 float height = 600;
 float dpiRatio = 1;
+
 
 bool pause = false;
 
@@ -29,15 +30,15 @@ float rand_0_1(float scale) {
 
 void update() {
     double time = glfwGetTime();
-    
+
     if(!pause) {
         int i = 0;
-        
+
         for (auto& obb : obbs) {
             float r1 = rand_0_1(10);
             float r2 = rand_0_1(20);
             float r3 = rand_0_1(M_PI);
-            
+
             auto centroid = obb.getCentroid();
 
             if (++i % 2 == 0) {
@@ -142,24 +143,24 @@ void drawOBB(const OBB& obb, bool isect) {
 
         isect2d::Vec2 start = quad[i];
         isect2d::Vec2 end = quad[(i + 1) % 4];
-        
+
         line(start.x, start.y, end.x, end.y);
-        
+
         glColor4f(1.0, 1.0, 1.0, 0.1);
         cross(obb.getCentroid().x, obb.getCentroid().y, 2);
     }
 }
 
 void render() {
-    
+
     while (!glfwWindowShouldClose(window)) {
         update();
-        
+
         if (pause) {
             glfwPollEvents();
             continue;
         }
-        
+
         glViewport(0, 0, width * dpiRatio, height * dpiRatio);
         glClearColor(0.18f, 0.18f, 0.22f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -168,11 +169,11 @@ void render() {
         glOrtho(0, width, 0, height, -1, 1);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        
+
         for (auto& obb : obbs) {
             drawOBB(obb, false);
         }
-        
+
         // bruteforce (test all obbs)
         {
             const clock_t startBruteForce = clock();
@@ -228,19 +229,19 @@ void render() {
 
             std::cout << "narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
         }
-        
+
         // bvh drawing
         {
             isect2d::BVH bvh(aabbs);
-            
+
             isect2d::BVHNode* node = bvh.getRoot();
             std::stack<isect2d::BVHNode*> todo;
             todo.push(node);
-            
+
             while (todo.size() != 0) {
                 node = todo.top();
                 todo.pop();
-                
+
                 if (node == nullptr)
                     continue;
                 if (node->m_proxy)
@@ -248,7 +249,7 @@ void render() {
                 if (node->isLeaf()) {
                     drawAABB(*node->m_aabb);
                 }
-                
+
                 todo.push(node->m_leftChild);
                 todo.push(node->m_rightChild);
             }
