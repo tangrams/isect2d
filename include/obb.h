@@ -5,6 +5,8 @@
 namespace isect2d {
 
 struct OBB {
+    
+    OBB() {}
 
     OBB(float _cx, float _cy, float _a, float _w, float _h) :
         m_width(_w), m_height(_h), m_angle(_a), m_centroid(isect2d::Vec2(_cx, _cy)) {
