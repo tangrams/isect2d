@@ -9,6 +9,7 @@
 #include "aabb.h"
 #include "vec2.h"
 #include "bvh.h"
+#include "sap.h"
 
 //#define BRUTEFORCE
 

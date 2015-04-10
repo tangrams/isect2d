@@ -36,16 +36,11 @@ class CentroidSorter {
 struct BVH {
     
     BVH(const std::vector<AABB>& _aabbs) : m_aabbs(_aabbs) {
-        m_depth = 0;
         build();
     }
     
     BVHNode* getRoot() {
         return m_root;
-    }
-    
-    int getDepth() const {
-        return m_depth;
     }
     
     ~BVH() {
