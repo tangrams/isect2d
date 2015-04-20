@@ -13,7 +13,7 @@
 
 #define BRUTEFORCE
 
-static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs) {
+inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs) {
     std::set<std::pair<int, int>> pairs;
 
     if (_aabbs.size() == 0) {

@@ -141,7 +141,7 @@ static bool axisCollide(const OBB& _a, const OBB& _b, const isect2d::Vec2* axes)
     return true;
 }
 
-static bool intersect(const OBB& _a, const OBB& _b) {
+inline static bool intersect(const OBB& _a, const OBB& _b) {
     return axisCollide(_a, _b, _a.getAxes()) && axisCollide(_a, _b, _b.getAxes());
 }
 
