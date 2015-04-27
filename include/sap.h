@@ -6,6 +6,8 @@
 #include <memory>
 #include <algorithm>
 
+#include <iostream>
+
 #define EPSILON 0.0001
 
 /*
@@ -54,7 +56,10 @@ namespace isect2d {
     struct SAP {
     public:
 
-        SAP() {}
+        SAP() {
+            Boxes.clear();
+            SortListX.clear();
+        }
 
         void updateSortedPositions(const std::list<std::shared_ptr<EndPoint>>::iterator& _epItr) {
             if(_epItr != SortListX.begin() && std::next(_epItr) != SortListX.end()) {
@@ -87,17 +92,23 @@ namespace isect2d {
             auto aabbIndex = _aabb - _aabbs.begin();
             std::shared_ptr<EndPoint> ep1(new EndPoint(_aabb->m_userData, aabbIndex, _aabb->m_min.x, true));
             std::shared_ptr<EndPoint> ep2(new EndPoint(_aabb->m_userData, aabbIndex, _aabb->m_max.x, false));
-            if(*ep1 > *(SortListX.back())) {
-                SortListX.push_back(ep1);
-                SortListX.push_back(ep2);
-            } else if(*ep2 < *(SortListX.front())) {
+            if(SortListX.size() == 0) {
                 SortListX.push_front(ep2);
                 SortListX.push_front(ep1);
-            } else {
-                SortListX.push_front(ep1);
-                updateSortedPositions(SortListX.begin());
-                SortListX.push_front(ep2);
-                updateSortedPositions(SortListX.begin());
+            }
+            else {
+                if(*ep1 > *(SortListX.back())) {
+                    SortListX.push_back(ep1);
+                    SortListX.push_back(ep2);
+                } else if(*ep2 < *(SortListX.front())) {
+                    SortListX.push_front(ep2);
+                    SortListX.push_front(ep1);
+                } else {
+                    SortListX.push_front(ep1);
+                    updateSortedPositions(SortListX.begin());
+                    SortListX.push_front(ep2);
+                    updateSortedPositions(SortListX.begin());
+                }
             }
             std::unique_ptr<Box> box(new Box(_aabb->m_userData, ep1, ep2));
             Boxes.push_back(std::move(box));
