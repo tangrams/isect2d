@@ -11,7 +11,7 @@
 #include "bvh.h"
 #include "sap.h"
 
-//#define BRUTEFORCE
+#define BRUTEFORCE
 
 static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs) {
     std::set<std::pair<int, int>> pairs;
@@ -63,6 +63,7 @@ static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>&
             }
         }
     }
+
 #endif
 
     return pairs;
