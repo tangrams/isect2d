@@ -151,8 +151,11 @@ void drawOBB(const OBB& obb, bool isect) {
 }
 
 void render() {
+
+    std::unique_ptr<isect2d::SAP> m_sap(new isect2d::SAP());
     
     while (!glfwWindowShouldClose(window)) {
+
         update();
         
         if (pause) {
@@ -190,6 +193,8 @@ void render() {
         // broad phase
         std::vector<isect2d::AABB> aabbs;
         std::set<std::pair<int, int>> pairs;
+        size_t bruteforceBPSize;
+        size_t SAPSize;
         {
             const clock_t beginBroadPhaseTime = clock();
 
@@ -200,7 +205,27 @@ void render() {
             }
             pairs = intersect(aabbs);
 
+            bruteforceBPSize = pairs.size();
+
             std::cout << "bvh broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
+        }
+
+        {
+            pairs.clear();
+            aabbs.clear();
+
+            const clock_t beginBroadPhaseTime = clock();
+
+            for(auto& obb : obbs) {
+                auto aabb = obb.getExtent();
+                aabb.m_userData = (void*)&obb;
+                aabbs.push_back(aabb);
+            }
+            pairs = m_sap->intersect(aabbs);
+
+            SAPSize = pairs.size();
+
+            std::cout << "SAP broadphase: " << "Pairs: "<<pairs.size()<<" "<<(float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms .\t\tPairs: "<<pairs.size();
         }
 
         // narrow phase
@@ -227,10 +252,12 @@ void render() {
             }
 
             std::cout << "narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
+            std::cout<<"\n\t"<<pairs.size()<<"\n";
         }
+        std::cout<<"Bruteforce broadphase pair set size: "<<bruteforceBPSize<<"\tSAP pair set size: "<<SAPSize<<"\n";
         
         // bvh drawing
-        {
+        /*{
             isect2d::BVH bvh(aabbs);
             
             isect2d::BVHNode* node = bvh.getRoot();
@@ -252,7 +279,7 @@ void render() {
                 todo.push(node->m_leftChild);
                 todo.push(node->m_rightChild);
             }
-        }
+        }*/
 
         glfwSwapBuffers(window);
 
