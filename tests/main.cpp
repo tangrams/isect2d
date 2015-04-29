@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <unordered_map>
 #include <memory>
 #include <random>
 #include <stack>
@@ -192,28 +193,25 @@ void render() {
 
         // broad phase
         std::vector<isect2d::AABB> aabbs;
+        std::unordered_map<void*, isect2d::AABB> SAPaabbs;
         std::set<std::pair<int, int>> pairs;
-        size_t bruteforceBPSize;
-        size_t SAPSize;
+
         {
             const clock_t beginBroadPhaseTime = clock();
 
             for (auto& obb : obbs) {
                 auto aabb = obb.getExtent();
                 aabb.m_userData = (void*)&obb;
-                aabbs.push_back(aabb);
+                SAPaabbs[aabb.m_userData] = aabb;
             }
-            pairs = intersect(aabbs);
+            m_sap->intersect(SAPaabbs);
 
-            bruteforceBPSize = pairs.size();
+            auto& SAPPairs = m_sap->getPairs();
 
-            std::cout << "bvh broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
+            std::cout << "\tSAP broadphase: " << "Pairs: "<<SAPPairs.size()<<" "<<(float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
         }
 
         {
-            pairs.clear();
-            aabbs.clear();
-
             const clock_t beginBroadPhaseTime = clock();
 
             for(auto& obb : obbs) {
@@ -221,18 +219,35 @@ void render() {
                 aabb.m_userData = (void*)&obb;
                 aabbs.push_back(aabb);
             }
-            pairs = m_sap->intersect(aabbs);
+            pairs = intersect(aabbs);
 
-            SAPSize = pairs.size();
-
-            std::cout << "SAP broadphase: " << "Pairs: "<<pairs.size()<<" "<<(float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms .\t\tPairs: "<<pairs.size();
+            std::cout << "bvh broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms . Pairs: "<<pairs.size();
         }
 
         // narrow phase
         {
             clock_t narrowTime = 0;
+            auto& SAPpairs = m_sap->getPairs();
+            for (auto pair : SAPpairs) {
+                clock_t beginNarrowTime;
 
-            for (auto pair : pairs) {
+                auto obb1 = *(OBB*)(pair.first);
+                auto obb2 = *(OBB*)(pair.second);
+
+                // narrow phase
+                beginNarrowTime = clock();
+                bool isect = intersect(obb1, obb2);
+                narrowTime += (clock() - beginNarrowTime);
+
+                if (isect) {
+                    drawOBB(obb1, true);
+                    drawOBB(obb2, true);
+
+                    line(obb1.getCentroid().x, obb1.getCentroid().y, obb2.getCentroid().x, obb2.getCentroid().y);
+                }
+            }
+
+            /*for (auto pair : pairs) {
                 clock_t beginNarrowTime;
 
                 auto obb1 = obbs[pair.first];
@@ -249,12 +264,10 @@ void render() {
 
                     line(obb1.getCentroid().x, obb1.getCentroid().y, obb2.getCentroid().x, obb2.getCentroid().y);
                 }
-            }
+            }*/
 
             std::cout << "narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
-            std::cout<<"\n\t"<<pairs.size()<<"\n";
         }
-        std::cout<<"Bruteforce broadphase pair set size: "<<bruteforceBPSize<<"\tSAP pair set size: "<<SAPSize<<"\n";
         
         // bvh drawing
         /*{
