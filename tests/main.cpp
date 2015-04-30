@@ -12,8 +12,9 @@
 
 #include <GLFW/glfw3.h>
 
-#define N_BOX 60
-#define CIRCLES
+#define N_BOX 120
+//#define CIRCLES
+#define AREA
 
 GLFWwindow* window;
 float width = 800;
@@ -60,7 +61,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 void initBBoxes() {
 
-#ifdef CIRCLES
+#if defined CIRCLES
     int n = N_BOX;
     float o = (2 * M_PI) / n;
     float size = 200;
@@ -73,18 +74,34 @@ void initBBoxes() {
                     sin(o * i) * size + height / 2, r,
                     r + boxSize * 8, r * boxSize / 3 + boxSize));
     }
+#elif defined AREA
+    int n = N_BOX;
+    float boxSize = 20;
+    
+    std::default_random_engine generator;
+    std::uniform_real_distribution<double> xDistribution(-350.0,350.0);
+    std::uniform_real_distribution<double> yDistribution(-250.0,250.0);
+    std::uniform_real_distribution<double> boxScaleDist(0.0f,2.0f);
+    for(int i = 0; i < n; i++) {
+        float boxSizeFactor = boxScaleDist(generator);
+        float xVal = xDistribution(generator) + width/2.0f;
+        float yVal = yDistribution(generator) + height/2.0f;
+        float angle = yVal/(xVal+1.0f);
+        obbs.push_back(OBB(xVal, yVal, angle+M_PI*i/4, boxSizeFactor*8, boxSize-boxSizeFactor*2));
+    }
 #else
-    int n = 4;
+    int n = 1;
     float o = (2 * M_PI) / n;
     float size = 50;
     float boxSize = 15;
 
     for (int i = 0; i < n; ++i) {
-        float r = rand_0_1(20);
+        //float r = rand_0_1(20);
 
-        obbs.push_back(OBB(cos(o * i) * size + width / 2,
-                    sin(o * i) * size + height / 2, r,
-                    r + boxSize * 8, r * boxSize / 3 + boxSize));
+        //obbs.push_back(OBB(cos(o * i) * size + width / 2,
+        //            sin(o * i) * size + height / 2, r,
+        //            r + boxSize * 8, r * boxSize / 3 + boxSize));
+        obbs.push_back(OBB(width/2, height/2, 20, boxSize*8, boxSize*4));
     }
 #endif
 
@@ -206,9 +223,9 @@ void render() {
             }
             m_sap->intersect(SAPaabbs);
 
-            auto& SAPPairs = m_sap->getPairs();
+            auto& SAPpairs = m_sap->getPairs();
 
-            std::cout << "\tSAP broadphase: " << "Pairs: "<<SAPPairs.size()<<" "<<(float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
+            std::cout << "\tSAP broadphase: " << "Pairs: "<<SAPpairs.size()<<" "<<(float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
         }
 
         {
@@ -223,7 +240,7 @@ void render() {
 
             std::cout << "bvh broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms . Pairs: "<<pairs.size();
         }
-
+        
         // narrow phase
         {
             clock_t narrowTime = 0;
