@@ -11,8 +11,9 @@
 
 #include <GLFW/glfw3.h>
 
-#define N_BOX 60
-#define CIRCLES
+#define N_BOX 1000
+//#define CIRCLES
+#define AREA
 
 GLFWwindow* window;
 float width = 800;
@@ -59,7 +60,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 void initBBoxes() {
 
-#ifdef CIRCLES
+#if defined CIRCLES
     int n = N_BOX;
     float o = (2 * M_PI) / n;
     float size = 200;
@@ -71,6 +72,22 @@ void initBBoxes() {
         obbs.push_back(OBB(cos(o * i) * size + width / 2,
                     sin(o * i) * size + height / 2, r,
                     r + boxSize * 8, r * boxSize / 3 + boxSize));
+    }
+#elif defined AREA
+    int n = N_BOX;
+    float boxSize = 5;
+                
+    std::default_random_engine generator;
+    std::uniform_real_distribution<double> xDistribution(-350.0,350.0);
+    std::uniform_real_distribution<double> yDistribution(-250.0,250.0);
+    std::uniform_real_distribution<double> boxScaleDist(-2.0f,2.0f);
+    for(int i = 0; i < n; i++) {
+        float boxSizeFactorW = boxScaleDist(generator);
+        float boxSizeFactorH = boxScaleDist(generator);
+        float xVal = xDistribution(generator) + width/2.0f;
+        float yVal = yDistribution(generator) + height/2.0f;
+        float angle = yVal/(xVal+1.0f);
+        obbs.push_back(OBB(xVal, yVal, angle+M_PI*i/4, boxSize-boxSizeFactorW, boxSize-boxSizeFactorH));
     }
 #else
     int n = 4;
@@ -189,7 +206,7 @@ void render() {
 
         // broad phase
         std::vector<isect2d::AABB> aabbs;
-        std::set<std::pair<int, int>> pairs;
+        std::set<std::pair<void*, void*>> pairs;
         {
             const clock_t beginBroadPhaseTime = clock();
 
@@ -198,9 +215,60 @@ void render() {
                 aabb.m_userData = (void*)&obb;
                 aabbs.push_back(aabb);
             }
-            pairs = intersect(aabbs);
+            intersect(aabbs, pairs);
 
             std::cout << "bvh broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
+        }
+
+        // braod phase grid
+        const int AABBCELLS = 4;
+        std::vector<isect2d::AABB> gridAabbs[AABBCELLS];
+        float invGridX = 2.0f/(width);
+        float invGridY = 2.0f/(height);
+        {
+            pairs.clear();
+            const clock_t beginBroadPhaseTime = clock();
+
+            for(auto& obb : obbs) {
+                auto aabb = obb.getExtent();
+                aabb.m_userData = (void*)&obb;
+                int v1 = aabb.m_min.x * invGridX;
+                int v2 = aabb.m_min.y * invGridY;
+                int v3 = aabb.m_max.x * invGridX;
+                int v4 = aabb.m_max.y * invGridY;
+                if(v1 == v2 && v2 == v3 && v3 == v4) {
+                    gridAabbs[v1*3].push_back(aabb);
+                } else if(v1 == v2 && v3 == v4) {
+                    gridAabbs[0].push_back(aabb);
+                    gridAabbs[1].push_back(aabb);
+                    gridAabbs[2].push_back(aabb);
+                    gridAabbs[3].push_back(aabb);
+                } else if(v1 != v2 && v3 != v4) {
+                    if(v1) {
+                        gridAabbs[1].push_back(aabb);
+                    } else {
+                        gridAabbs[2].push_back(aabb);
+                    }
+                } else if(v1 == v2) {
+                    gridAabbs[0].push_back(aabb);
+                    if(v3) {
+                        gridAabbs[1].push_back(aabb);
+                    } else {
+                        gridAabbs[2].push_back(aabb);
+                    }
+                } else {
+                    gridAabbs[3].push_back(aabb);
+                    if(v1) {
+                        gridAabbs[1].push_back(aabb);
+                    } else {
+                        gridAabbs[2].push_back(aabb);
+                    }
+                }
+            }
+            for(int i = 0; i < 4; i++) {
+                intersect(gridAabbs[i], pairs);
+            }
+                std::cout << "gridn2 broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
         }
 
         // narrow phase
@@ -210,8 +278,10 @@ void render() {
             for (auto pair : pairs) {
                 clock_t beginNarrowTime;
 
-                auto obb1 = obbs[pair.first];
-                auto obb2 = obbs[pair.second];
+                //auto obb1 = obbs[pair.first];
+                //auto obb2 = obbs[pair.second];
+                auto obb1 = *(OBB*)pair.first;
+                auto obb2 = *(OBB*)pair.second;
 
                 // narrow phase
                 beginNarrowTime = clock();
@@ -231,16 +301,16 @@ void render() {
         
         // bvh drawing
         {
-            isect2d::BVH bvh(aabbs);
-            
+            /*isect2d::BVH bvh(aabbs);
+
             isect2d::BVHNode* node = bvh.getRoot();
             std::stack<isect2d::BVHNode*> todo;
             todo.push(node);
-            
+
             while (todo.size() != 0) {
                 node = todo.top();
                 todo.pop();
-                
+
                 if (node == nullptr)
                     continue;
                 if (node->m_proxy)
@@ -248,10 +318,10 @@ void render() {
                 if (node->isLeaf()) {
                     drawAABB(*node->m_aabb);
                 }
-                
+
                 todo.push(node->m_leftChild);
                 todo.push(node->m_rightChild);
-            }
+            }*/
         }
 
         glfwSwapBuffers(window);
