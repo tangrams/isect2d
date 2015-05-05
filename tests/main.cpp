@@ -298,31 +298,6 @@ void render() {
 
             std::cout << "narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
         }
-        
-        // bvh drawing
-        {
-            /*isect2d::BVH bvh(aabbs);
-
-            isect2d::BVHNode* node = bvh.getRoot();
-            std::stack<isect2d::BVHNode*> todo;
-            todo.push(node);
-
-            while (todo.size() != 0) {
-                node = todo.top();
-                todo.pop();
-
-                if (node == nullptr)
-                    continue;
-                if (node->m_proxy)
-                    drawAABB(*node->m_proxy);
-                if (node->isLeaf()) {
-                    drawAABB(*node->m_aabb);
-                }
-
-                todo.push(node->m_leftChild);
-                todo.push(node->m_rightChild);
-            }*/
-        }
 
         glfwSwapBuffers(window);
 
