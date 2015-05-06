@@ -84,7 +84,6 @@ namespace isect2d {
                 }
             }
         }
-
         void updateSortedPositions(int _epIndex, const std::unordered_map<void*, AABB>& _aabbs) {
             while(_epIndex > 0 && _epIndex < SortListX.size() && *SortListX[_epIndex] < *SortListX[_epIndex-1]) {
                 addPair(_epIndex, _epIndex-1, _aabbs);
@@ -120,14 +119,31 @@ namespace isect2d {
         void updatePoints(std::unordered_map<void*, AABB>& _aabbs) {
             for(auto& box : Boxes) {
                 const auto& aabb = _aabbs.find(box.first);
-
+                
                 if(aabb != _aabbs.end()) {
-                    auto itr = std::find_if(SortListX.begin(), SortListX.end(), [&box](std::shared_ptr<EndPoint>& _ep) {return (_ep == box.second->m_min); });
+                    
+                    //clock_t begin = clock();
+                    int itr = 0;
+                    for (int i = 0; i < SortListX.size(); ++i) {
+                        if (SortListX[i] == box.second->m_min) {
+                            itr = i;
+                            break;
+                        }
+                    }
                     box.second->m_min->m_value = aabb->second.m_min.x;
-                    updateSortedPositions(itr - SortListX.begin(), _aabbs);
-                    itr = std::find_if(SortListX.begin(), SortListX.end(), [&box](std::shared_ptr<EndPoint>& _ep) {return (_ep == box.second->m_max); });
+                    updateSortedPositions(itr, _aabbs);
+                    
+                    for (int i = 0; i < SortListX.size(); ++i) {
+                        if (SortListX[i] == box.second->m_max) {
+                            itr = i;
+                            break;
+                        }
+                    }
                     box.second->m_max->m_value = aabb->second.m_max.x;
-                    updateSortedPositions(itr - SortListX.begin(), _aabbs);
+                    updateSortedPositions(itr, _aabbs);
+                    
+                    //clock_t end = clock();
+                    //total += (float(end - begin) / CLOCKS_PER_SEC * 1000);
                 } else {
                     std::remove_if( SortListX.begin(), SortListX.end(), [&aabb](std::shared_ptr<EndPoint>& _ep) { return (aabb->first == _ep->boxID ); });
                     Boxes.erase(aabb->first);
@@ -140,14 +156,16 @@ namespace isect2d {
                     addPoint(_aabbs, aabbItr);
                 }
             }
-            
         }
 
         void intersect(std::unordered_map<void*, AABB>& _aabbs) {
+            //total = 0.0f;
             if(SortListX.size() == 0) {
-                SortListX.reserve(2*_aabbs.size());
+                SortListX.reserve(_aabbs.size());
             }
             updatePoints(_aabbs);
+            //std::cout << std::endl << " method time " << total << " ms" << std::endl;
+            //total = 0.0f;
         }
         
         std::set<std::pair<void*, void*>>& getPairs() {
@@ -161,6 +179,7 @@ namespace isect2d {
         }
 
     private:
+        //float total;
         std::vector<std::shared_ptr<EndPoint>> SortListX;
         std::unordered_map<void*,std::unique_ptr<Box>> Boxes;
         std::set<std::pair<void*, void*>> Pairs;
