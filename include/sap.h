@@ -18,7 +18,6 @@
 
 namespace isect2d {
 
-    // 8 bytes for end points
     struct EndPoint {
         void* boxID; //same as userData
         float m_value;
@@ -54,46 +53,47 @@ namespace isect2d {
     };
 
     struct SAP {
+        
     public:
-
+        
         SAP() {
-            Boxes.clear();
-            SortListX.clear();
+            m_boxes.clear();
+            m_sortListX.clear();
         }
         
         void swapEPs(const int _ep1Index, const int _ep2Index) {
-            auto epTmp = std::move(SortListX[_ep1Index]);
-            SortListX[_ep1Index] = std::move(SortListX[_ep2Index]);
-            SortListX[_ep2Index] = std::move(epTmp);
+            auto epTmp = std::move(m_sortListX[_ep1Index]);
+            m_sortListX[_ep1Index] = std::move(m_sortListX[_ep2Index]);
+            m_sortListX[_ep2Index] = std::move(epTmp);
         }
         
         void addPair(const int& _i1, const int& _i2, const std::unordered_map<void*, AABB>& _aabbs) {
             
-            if( _i1 != _i2 ) {
-                if( (_i1 > _i2 && SortListX[_i1]->m_isMin && !SortListX[_i2]->m_isMin) ||
-                    (_i1 < _i2 && !SortListX[_i1]->m_isMin && SortListX[_i2]->m_isMin) ) {
+            if(_i1 != _i2) {
+                if( (_i1 > _i2 && m_sortListX[_i1]->m_isMin && !m_sortListX[_i2]->m_isMin) ||
+                    (_i1 < _i2 && !m_sortListX[_i1]->m_isMin && m_sortListX[_i2]->m_isMin)) {
                     
-                    if(_aabbs.at(SortListX[_i1]->boxID).intersect(_aabbs.at(SortListX[_i2]->boxID))) {
-                        if(Pairs.find({SortListX[_i2]->boxID, SortListX[_i1]->boxID}) == Pairs.end()) {
+                    if(_aabbs.at(m_sortListX[_i1]->boxID).intersect(_aabbs.at(m_sortListX[_i2]->boxID))) {
+                        if(m_pairs.find({m_sortListX[_i2]->boxID, m_sortListX[_i1]->boxID}) == m_pairs.end()) {
                             
                             // TODO : test on both Y / X axes using counter to know whether the box collide on one axis
-                            Pairs.insert({SortListX[_i1]->boxID, SortListX[_i2]->boxID});
+                            m_pairs.insert({ m_sortListX[_i1]->boxID, m_sortListX[_i2]->boxID });
                         }
                     }
                     
-                } else if((_i1 > _i2 && !SortListX[_i1]->m_isMin && SortListX[_i2]->m_isMin) ||
-                          (_i1 < _i2 && SortListX[_i1]->m_isMin && !SortListX[_i2]->m_isMin) ) {
-                    Pairs.erase({SortListX[_i1]->boxID, SortListX[_i2]->boxID});
+                } else if((_i1 > _i2 && !m_sortListX[_i1]->m_isMin && m_sortListX[_i2]->m_isMin) ||
+                          (_i1 < _i2 && m_sortListX[_i1]->m_isMin && !m_sortListX[_i2]->m_isMin)) {
+                    m_pairs.erase({m_sortListX[_i1]->boxID, m_sortListX[_i2]->boxID});
                 }
             }
         }
         void updateSortedPositions(int _epIndex, const std::unordered_map<void*, AABB>& _aabbs) {
-            while(_epIndex > 0 && _epIndex < SortListX.size() && *SortListX[_epIndex] < *SortListX[_epIndex-1]) {
+            while(_epIndex > 0 && _epIndex < m_sortListX.size() && *m_sortListX[_epIndex] < *m_sortListX[_epIndex-1]) {
                 addPair(_epIndex, _epIndex-1, _aabbs);
                 swapEPs(_epIndex, _epIndex-1);
                 _epIndex--;
             }
-            while(_epIndex < (SortListX.size()-1) && *SortListX[_epIndex] > *SortListX[_epIndex+1]) {
+            while(_epIndex < (m_sortListX.size()-1) && *m_sortListX[_epIndex] > *m_sortListX[_epIndex+1]) {
                 addPair(_epIndex, _epIndex+1, _aabbs);
                 swapEPs(_epIndex, _epIndex+1);
                 _epIndex++;
@@ -104,24 +104,26 @@ namespace isect2d {
             
             std::shared_ptr<EndPoint> ep1(new EndPoint(_aabbItr->first, _aabbItr->second.m_min.x, true));
             std::shared_ptr<EndPoint> ep2(new EndPoint(_aabbItr->first, _aabbItr->second.m_max.x, false));
-            if(SortListX.size() == 0) {
-                SortListX.push_back(ep1);
-                SortListX.push_back(ep2);
-            } else if(*ep2 < *(*SortListX.begin())) {
-                SortListX.insert(SortListX.begin(), ep2);
-                SortListX.insert(SortListX.begin(), ep1);
+            
+            if(m_sortListX.size() == 0) {
+                m_sortListX.push_back(ep1);
+                m_sortListX.push_back(ep2);
+            } else if(*ep2 < *(*m_sortListX.begin())) {
+                m_sortListX.insert(m_sortListX.begin(), ep2);
+                m_sortListX.insert(m_sortListX.begin(), ep1);
             } else {
-                    SortListX.push_back(ep1);
-                    updateSortedPositions(SortListX.size()-1, _aabbs);
-                    SortListX.push_back(ep2);
-                    updateSortedPositions(SortListX.size()-1, _aabbs);
+                m_sortListX.push_back(ep1);
+                updateSortedPositions(m_sortListX.size()-1, _aabbs);
+                m_sortListX.push_back(ep2);
+                updateSortedPositions(m_sortListX.size()-1, _aabbs);
             }
+            
             std::unique_ptr<Box> box(new Box(_aabbItr->first, ep1, ep2));
-            Boxes[_aabbItr->first] = std::move(box);
+            m_boxes[_aabbItr->first] = std::move(box);
         }
         
         void updatePoints(std::unordered_map<void*, AABB>& _aabbs) {
-            for(auto& box : Boxes) {
+            for(auto& box : m_boxes) {
                 const auto& aabb = _aabbs.find(box.first);
                 
                 if(aabb != _aabbs.end()) {
@@ -130,51 +132,49 @@ namespace isect2d {
                     box.second->m_max->m_value = aabb->second.m_max.x;
                 
                 } else {
-                    std::remove_if( SortListX.begin(), SortListX.end(), [&aabb](std::shared_ptr<EndPoint>& _ep) { return (aabb->first == _ep->boxID ); });
-                    Boxes.erase(aabb->first);
+                    std::remove_if(m_sortListX.begin(), m_sortListX.end(), [&aabb](std::shared_ptr<EndPoint>& _ep) {
+                        return (aabb->first == _ep->boxID );
+                    });
+                    
+                    m_boxes.erase(aabb->first);
                 }
             }
             
-            for (int i = 0; i < SortListX.size(); ++i) {
+            for (int i = 0; i < m_sortListX.size(); ++i) {
                 updateSortedPositions(i, _aabbs);
             }
 
             for(auto aabbItr = _aabbs.begin(); aabbItr != _aabbs.end(); aabbItr++) {
-                auto box = Boxes.find(aabbItr->first);
-                if(box == Boxes.end()) {
+                auto box = m_boxes.find(aabbItr->first);
+                if(box == m_boxes.end()) {
                     addPoint(_aabbs, aabbItr);
                 }
             }
         }
 
         void intersect(std::unordered_map<void*, AABB>& _aabbs) {
-            total = 0.0f;
-            if(SortListX.size() == 0) {
-                SortListX.reserve(_aabbs.size());
+            if(m_sortListX.size() == 0) {
+                m_sortListX.reserve(2 * _aabbs.size());
             }
             updatePoints(_aabbs);
             
             // TODO : loop over counters and insert only if collide on Y + X
-            
-            std::cout << std::endl << " method time " << total << " ms" << std::endl;
-            total = 0.0f;
         }
         
         std::set<std::pair<void*, void*>>& getPairs() {
-            return Pairs;
+            return m_pairs;
         }
         
         void clearSAP() {
-            SortListX.clear();
-            Boxes.clear();
-            Pairs.clear();
+            m_sortListX.clear();
+            m_boxes.clear();
+            m_pairs.clear();
         }
 
     private:
-        float total;
-        std::vector<std::shared_ptr<EndPoint>> SortListX;
-        std::unordered_map<void*,std::unique_ptr<Box>> Boxes;
-        std::set<std::pair<void*, void*>> Pairs;
+        std::vector<std::shared_ptr<EndPoint>> m_sortListX;
+        std::unordered_map<void*,std::unique_ptr<Box>> m_boxes;
+        std::set<std::pair<void*, void*>> m_pairs;
     };
 
 }

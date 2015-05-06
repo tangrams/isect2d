@@ -12,7 +12,7 @@
 
 #include <GLFW/glfw3.h>
 
-#define N_BOX 120
+#define N_BOX 2000
 //#define CIRCLES
 #define AREA
 
@@ -70,13 +70,11 @@ void initBBoxes() {
     for (int i = 0; i < n; ++i) {
         float r = rand_0_1(20);
 
-        obbs.push_back(OBB(cos(o * i) * size + width / 2,
-                    sin(o * i) * size + height / 2, r,
-                    r + boxSize * 8, r * boxSize / 3 + boxSize));
+        obbs.push_back(OBB(cos(o * i) * size + width / 2, sin(o * i) * size + height / 2, r, r + boxSize, r * boxSize / 4 + boxSize));
     }
 #elif defined AREA
     int n = N_BOX;
-    float boxSize = 20;
+    float boxSize = 8;
     
     std::default_random_engine generator;
     std::uniform_real_distribution<double> xDistribution(-350.0,350.0);
@@ -194,20 +192,6 @@ void render() {
             drawOBB(obb, false);
         }
         
-        // bruteforce (test all obbs)
-        {
-            const clock_t startBruteForce = clock();
-            std::set<std::pair<int, int>> p;
-            for (int i = 0; i < obbs.size(); ++i) {
-                for (int j = i + 1; j < obbs.size(); ++j) {
-                    if (intersect(obbs[i], obbs[j])) {
-                        p.insert({ i, j });
-                    }
-                }
-            }
-            std::cout << "broadphase: " << float(clock() - startBruteForce) / CLOCKS_PER_SEC * 1000 << "ms ";
-        }
-
         // broad phase
         std::vector<isect2d::AABB> aabbs;
         std::unordered_map<void*, isect2d::AABB> SAPaabbs;
@@ -225,7 +209,7 @@ void render() {
 
             auto& SAPpairs = m_sap->getPairs();
 
-            std::cout << "\tSAP broadphase: " << "Pairs: "<<SAPpairs.size()<<" "<<(float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
+            std::cout << "\tSAP broadphase: " << "Pairs: " << SAPpairs.size() << " "<< (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
         }
 
         {
@@ -238,7 +222,7 @@ void render() {
             }
             pairs = intersect(aabbs);
 
-            std::cout << "bvh broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms . Pairs: "<<pairs.size();
+            std::cout << " bruteforce broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms . Pairs: "<<pairs.size();
         }
         
         // narrow phase
@@ -264,52 +248,9 @@ void render() {
                 }
             }
 
-            /*for (auto pair : pairs) {
-                clock_t beginNarrowTime;
-
-                auto obb1 = obbs[pair.first];
-                auto obb2 = obbs[pair.second];
-
-                // narrow phase
-                beginNarrowTime = clock();
-                bool isect = intersect(obb1, obb2);
-                narrowTime += (clock() - beginNarrowTime);
-
-                if (isect) {
-                    drawOBB(obb1, true);
-                    drawOBB(obb2, true);
-
-                    line(obb1.getCentroid().x, obb1.getCentroid().y, obb2.getCentroid().x, obb2.getCentroid().y);
-                }
-            }*/
 
             std::cout << "narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
         }
-        
-        // bvh drawing
-        /*{
-            isect2d::BVH bvh(aabbs);
-            
-            isect2d::BVHNode* node = bvh.getRoot();
-            std::stack<isect2d::BVHNode*> todo;
-            todo.push(node);
-            
-            while (todo.size() != 0) {
-                node = todo.top();
-                todo.pop();
-                
-                if (node == nullptr)
-                    continue;
-                if (node->m_proxy)
-                    drawAABB(*node->m_proxy);
-                if (node->isLeaf()) {
-                    drawAABB(*node->m_aabb);
-                }
-                
-                todo.push(node->m_leftChild);
-                todo.push(node->m_rightChild);
-            }
-        }*/
 
         glfwSwapBuffers(window);
 
