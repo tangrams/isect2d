@@ -72,10 +72,6 @@ namespace isect2d {
         }
         
         void addPair(const int& _i1, const int& _i2, const std::unordered_map<void*, AABB>& _aabbs, const Dimension& _dim) {
-            if (_i1 == _i2) {
-                return;
-            }
-            
             const auto& ep1 = m_sortList[_dim][_i1];
             const auto& ep2 = m_sortList[_dim][_i2];
             
