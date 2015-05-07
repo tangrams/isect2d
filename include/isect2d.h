@@ -6,6 +6,10 @@
 #include <set>
 #include <iostream>
 
+enum Dimension {
+    X, Y, MAX_DIM
+};
+
 #include "aabb.h"
 #include "vec2.h"
 #include "sap.h"

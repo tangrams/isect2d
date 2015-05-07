@@ -6,10 +6,6 @@
 
 namespace isect2d {
 
-enum Dimension {
-    X, Y
-};
-
 struct AABB {
     AABB() : AABB(INT_MAX, INT_MAX, -INT_MAX, -INT_MAX) {}
 
