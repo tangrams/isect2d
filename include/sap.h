@@ -82,12 +82,17 @@ namespace isect2d {
                     }
                 }
             } else if ((_i1 > _i2 && !ep1->m_isMin && ep2->m_isMin) || (_i1 < _i2 && ep1->m_isMin && !ep2->m_isMin)) {
-                m_pairs.erase({ ep1->boxID, ep2->boxID });
+                if (m_collideAxis.find({ ep1->boxID, ep2->boxID }) != m_collideAxis.end()) {
+                    auto& collideAxis = m_collideAxis[{ ep1->boxID, ep2->boxID }];
+                    if (collideAxis > 0) {
+                        collideAxis--;
+                    }
+                }
             }
         }
         
         void updateSortedPositions(int _epIndex, const std::unordered_map<void*, AABB>& _aabbs, const Dimension& _dim) {
-            while (_epIndex > 0 && _epIndex < m_sortList[_dim].size() && *m_sortList[_dim][_epIndex] < *m_sortList[_dim][_epIndex - 1]) {
+            while (_epIndex > 0 && *m_sortList[_dim][_epIndex] < *m_sortList[_dim][_epIndex - 1]) {
                 addPair(_epIndex, _epIndex - 1, _aabbs, _dim);
                 swapEPs(_epIndex, _epIndex - 1, _dim);
                 _epIndex--;
@@ -119,6 +124,7 @@ namespace isect2d {
                         break;
                 }
                 
+                // TODO : fix first iteration by using insertion sort
                 if (m_sortList[dim].size() == 0) {
                     m_sortList[dim].push_back(*ep1);
                     m_sortList[dim].push_back(*ep2);
@@ -198,9 +204,10 @@ namespace isect2d {
             m_boxes.clear();
             m_pairs.clear();
         }
+        
+        std::vector<std::shared_ptr<EndPoint>> m_sortList[Dimension::MAX_DIM];
 
     private:
-        std::vector<std::shared_ptr<EndPoint>> m_sortList[Dimension::MAX_DIM];
         std::map<std::pair<void*, void*>, char> m_collideAxis;
         
         std::unordered_map<void*, std::unique_ptr<Box>> m_boxes;
