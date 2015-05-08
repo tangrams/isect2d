@@ -13,8 +13,12 @@
 #include <GLFW/glfw3.h>
 
 #define N_BOX 2000
-//#define CIRCLES
 #define AREA
+#define SWEEPPRUNE
+#define BRUTEFORCE
+//#define CIRCLES
+//#define DEBUG_DRAW
+//#define FALL
 
 GLFWwindow* window;
 float width = 800;
@@ -35,13 +39,22 @@ void update() {
     if(!pause) {
         int i = 0;
         
+#ifdef FALL
+        for (auto& obb : obbs) {
+            auto centroid = obb.getCentroid();
+            
+            if (++i % 2 == 0) {
+                obb.move(centroid.x, centroid.y + .3);
+            } 
+        }
+#else
         for (auto& obb : obbs) {
             float r1 = rand_0_1(10);
             float r2 = rand_0_1(20);
             float r3 = rand_0_1(M_PI);
             
             auto centroid = obb.getCentroid();
-
+            
             if (++i % 2 == 0) {
                 obb.move(centroid.x, centroid.y + .02 * cos(time * 0.25) * r2);
                 obb.rotate(cos(r3) * 0.1 + obb.getAngle());
@@ -50,6 +63,7 @@ void update() {
                 obb.rotate(cos(r2) * 0.1 + obb.getAngle());
             }
         }
+#endif
     }
 }
 
@@ -80,6 +94,7 @@ void initBBoxes() {
     std::uniform_real_distribution<double> xDistribution(-350.0,350.0);
     std::uniform_real_distribution<double> yDistribution(-250.0,250.0);
     std::uniform_real_distribution<double> boxScaleDist(0.0f,2.0f);
+    
     for(int i = 0; i < n; i++) {
         float boxSizeFactor = boxScaleDist(generator);
         float xVal = xDistribution(generator) + width/2.0f;
@@ -94,11 +109,6 @@ void initBBoxes() {
     float boxSize = 15;
 
     for (int i = 0; i < n; ++i) {
-        //float r = rand_0_1(20);
-
-        //obbs.push_back(OBB(cos(o * i) * size + width / 2,
-        //            sin(o * i) * size + height / 2, r,
-        //            r + boxSize * 8, r * boxSize / 3 + boxSize));
         obbs.push_back(OBB(width/2, height/2, 20, boxSize*8, boxSize*4));
     }
 #endif
@@ -168,7 +178,7 @@ void drawOBB(const OBB& obb, bool isect) {
 
 void render() {
 
-    std::unique_ptr<isect2d::SAP> m_sap(new isect2d::SAP());
+    isect2d::SAP sap;
     
     while (!glfwWindowShouldClose(window)) {
 
@@ -193,9 +203,10 @@ void render() {
         }
         
         // broad phase
+#ifdef SWEEPPRUNE
         std::vector<isect2d::AABB> aabbs;
         std::unordered_map<void*, isect2d::AABB> SAPaabbs;
-        std::set<std::pair<int, int>> pairs;
+        std::set<std::pair<void*, void*>> pairs;
 
         {
             const clock_t beginBroadPhaseTime = clock();
@@ -205,13 +216,33 @@ void render() {
                 aabb.m_userData = (void*)&obb;
                 SAPaabbs[aabb.m_userData] = aabb;
             }
-            m_sap->intersect(SAPaabbs);
+            
+            sap.intersect(SAPaabbs);
 
-            auto& SAPpairs = m_sap->getPairs();
-
-            std::cout << "\tSAP broadphase: " << "Pairs: " << SAPpairs.size() << " "<< (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
+            std::cout << "\tSAP broadphase: " << "Pairs: " << sap.getPairs().size() << " "<< (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
+            
+#ifdef DEBUG_DRAW
+            for (int dim = 0; dim < Dimension::MAX_DIM; ++dim) {
+                for (auto& ep : sap.m_sortList[dim]) {
+                    if (ep->m_isMin) {
+                        glColor4f(1.0, 0.5, 0.5, 1.0);
+                    } else {
+                        glColor4f(0.5, 1.0, 0.5, 1.0);
+                    }
+                    switch (dim) {
+                        case Dimension::X:
+                            line(ep->m_value, 0, ep->m_value, 10);
+                            break;
+                        case Dimension::Y:
+                            line(0, ep->m_value, 10, ep->m_value);
+                    }
+                }
+            }
+#endif
         }
+#endif
 
+#ifdef BRUTEFORCE
         {
             const clock_t beginBroadPhaseTime = clock();
 
@@ -220,16 +251,16 @@ void render() {
                 aabb.m_userData = (void*)&obb;
                 aabbs.push_back(aabb);
             }
-            pairs = intersect(aabbs);
+            auto pairsBruteforce = intersect(aabbs);
 
-            std::cout << " bruteforce broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms . Pairs: "<<pairs.size();
+            std::cout << " bruteforce broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms . Pairs: " << pairsBruteforce.size();
         }
-        
+#endif
+
         // narrow phase
         {
             clock_t narrowTime = 0;
-            auto& SAPpairs = m_sap->getPairs();
-            for (auto pair : SAPpairs) {
+            for (auto pair : sap.getPairs()) {
                 clock_t beginNarrowTime;
 
                 auto obb1 = *(OBB*)(pair.first);
