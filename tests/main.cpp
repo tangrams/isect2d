@@ -1,11 +1,8 @@
-
-#include "obb.h"
 #include "isect2d.h"
 
 #include <iostream>
 #include <cmath>
 #include <vector>
-#include <unordered_map>
 #include <memory>
 #include <random>
 #include <stack>
@@ -20,14 +17,16 @@
 //#define DEBUG_DRAW
 //#define FALL
 
+
 GLFWwindow* window;
 float width = 800;
 float height = 600;
 float dpiRatio = 1;
 
+
 bool pause = false;
 
-std::vector<OBB> obbs;
+std::vector<isect2d::OBB> obbs;
 
 float rand_0_1(float scale) {
     return ((float)rand() / (float)(RAND_MAX)) * scale;
@@ -35,9 +34,10 @@ float rand_0_1(float scale) {
 
 void update() {
     double time = glfwGetTime();
-    
+
     if(!pause) {
         int i = 0;
+
         
 #ifdef FALL
         for (auto& obb : obbs) {
@@ -52,7 +52,7 @@ void update() {
             float r1 = rand_0_1(10);
             float r2 = rand_0_1(20);
             float r3 = rand_0_1(M_PI);
-            
+
             auto centroid = obb.getCentroid();
             
             if (++i % 2 == 0) {
@@ -100,7 +100,7 @@ void initBBoxes() {
         float xVal = xDistribution(generator) + width/2.0f;
         float yVal = yDistribution(generator) + height/2.0f;
         float angle = yVal/(xVal+1.0f);
-        obbs.push_back(OBB(xVal, yVal, angle+M_PI*i/4, boxSizeFactor*8, boxSize-boxSizeFactor*2));
+        obbs.push_back(isect2d::OBB(xVal, yVal, angle+M_PI*i/4, boxSizeFactor*8, boxSize-boxSizeFactor*2));
     }
 #else
     int n = 1;
@@ -156,7 +156,7 @@ void drawAABB(const isect2d::AABB& _aabb) {
     line(_aabb.getMin().x, _aabb.getMax().y, _aabb.getMax().x, _aabb.getMax().y);
 }
 
-void drawOBB(const OBB& obb, bool isect) {
+void drawOBB(const isect2d::OBB& obb, bool isect) {
     const isect2d::Vec2* quad = obb.getQuad();
 
     for(int i = 0; i < 4; ++i) {
@@ -168,9 +168,9 @@ void drawOBB(const OBB& obb, bool isect) {
 
         isect2d::Vec2 start = quad[i];
         isect2d::Vec2 end = quad[(i + 1) % 4];
-        
+
         line(start.x, start.y, end.x, end.y);
-        
+
         glColor4f(1.0, 1.0, 1.0, 0.1);
         cross(obb.getCentroid().x, obb.getCentroid().y, 2);
     }
@@ -183,12 +183,12 @@ void render() {
     while (!glfwWindowShouldClose(window)) {
 
         update();
-        
+
         if (pause) {
             glfwPollEvents();
             continue;
         }
-        
+
         glViewport(0, 0, width * dpiRatio, height * dpiRatio);
         glClearColor(0.18f, 0.18f, 0.22f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -197,7 +197,7 @@ void render() {
         glOrtho(0, width, 0, height, -1, 1);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        
+
         for (auto& obb : obbs) {
             drawOBB(obb, false);
         }
@@ -263,8 +263,8 @@ void render() {
             for (auto pair : sap.getPairs()) {
                 clock_t beginNarrowTime;
 
-                auto obb1 = *(OBB*)(pair.first);
-                auto obb2 = *(OBB*)(pair.second);
+                auto obb1 = *(isect2d::OBB*)(pair.first);
+                auto obb2 = *(isect2d::OBB*)(pair.second);
 
                 // narrow phase
                 beginNarrowTime = clock();
