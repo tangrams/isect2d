@@ -6,7 +6,7 @@
 
 #include "aabb.h"
 #include "vec2.h"
-#include "obb.h"
+#include "obb.h"q
 
 /*
  * Performs broadphase collision detecction on _aabbs dividing the screen size _resolution by _split on
@@ -24,14 +24,15 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
     int n = int(_split.x * _split.y);
     std::vector<AABBPair>* gridAABBs = new std::vector<AABBPair>[n];
     
-    const short xpad = short(_resolution.x / _split.x);
-    const short ypad = short(_resolution.y / _split.y);
+    const short xpad = short(ceilf(_resolution.x / _split.x));
+    const short ypad = short(ceilf(_resolution.y / _split.y));
     
     short x = 0, y = 0;
 
     for (int j = 0; j < _split.y; ++j) {
         for (int i = 0; i < _split.x; ++i) {
             isect2d::AABB cell(x, y, x + xpad, y + ypad);
+
             for (unsigned int index = 0; index < _aabbs.size(); ++index) {
                 const isect2d::AABB* aabb = &_aabbs[index];
                 // test the aabb against the current grid cell
@@ -40,9 +41,12 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
                 }
             }
             x += xpad;
-            x %= short(_resolution.x);
+            
+            if (x >= _resolution.x) {
+                x = 0;
+                y += ypad;
+            }
         }
-        y += ypad;
     }
     
     for (int i = 0; i < n; ++i) {
