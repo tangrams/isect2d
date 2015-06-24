@@ -8,7 +8,13 @@
 #include "vec2.h"
 #include "obb.h"
 
-inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs, isect2d::Vec2 _split, isect2d::Vec2 _resolution) {
+/*
+ * Performs broadphase collision detecction on _aabbs dividing the screen size _resolution by _split on
+ * X and Y dimension
+ * Returns the set of colliding pairs in the _aabbs container
+ */
+inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs,
+                                                      isect2d::Vec2 _split, isect2d::Vec2 _resolution) {
     struct AABBPair {
         const isect2d::AABB* aabb;
         unsigned int index;
@@ -25,10 +31,11 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
 
     for (int i = 0; i < _split.x; ++i) {
         for (int j = 0; j < _split.y; ++j) {
-            isect2d::AABB grid(x, y, x + xpad, y + ypad);
+            isect2d::AABB cell(x, y, x + xpad, y + ypad);
             for (unsigned int index = 0; index < _aabbs.size(); ++index) {
                 const isect2d::AABB* aabb = &_aabbs[index];
-                if (grid.intersect(*aabb)) {
+                // test the aabb against the current grid cell
+                if (cell.intersect(*aabb)) {
                     gridAABBs[int(j + i * _split.x)].push_back({aabb, index});
                 }
             }
@@ -53,6 +60,10 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
     return std::move(pairs);
 }
 
+/*
+ * Performs bruteforce broadphase collision detection on _aabbs
+ * Returns the set of colliding pairs in the _aabbs container
+ */
 inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs) {
     std::set<std::pair<int, int>> pairs;
     
