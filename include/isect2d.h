@@ -29,14 +29,14 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
     
     float x = 0.f, y = 0.f;
 
-    for (int i = 0; i < _split.x; ++i) {
-        for (int j = 0; j < _split.y; ++j) {
+    for (int j = 0; j < _split.y; ++j) {
+        for (int i = 0; i < _split.x; ++i) {
             isect2d::AABB cell(x, y, x + xpad, y + ypad);
             for (unsigned int index = 0; index < _aabbs.size(); ++index) {
                 const isect2d::AABB* aabb = &_aabbs[index];
                 // test the aabb against the current grid cell
                 if (cell.intersect(*aabb)) {
-                    gridAABBs[int(j + i * _split.x)].push_back({aabb, index});
+                    gridAABBs[int(i + j * _split.x)].push_back({aabb, index});
                 }
             }
             x += xpad;
