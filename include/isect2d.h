@@ -24,10 +24,10 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
     int n = int(_split.x * _split.y);
     std::vector<AABBPair>* gridAABBs = new std::vector<AABBPair>[n];
     
-    const float xpad = _resolution.x / _split.x;
-    const float ypad = _resolution.y / _split.y;
+    const short xpad = short(_resolution.x / _split.x);
+    const short ypad = short(_resolution.y / _split.y);
     
-    float x = 0.f, y = 0.f;
+    short x = 0, y = 0;
 
     for (int j = 0; j < _split.y; ++j) {
         for (int i = 0; i < _split.x; ++i) {
@@ -40,7 +40,7 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
                 }
             }
             x += xpad;
-            x = fmodf(x, _resolution.x);
+            x %= short(_resolution.x);
         }
         y += ypad;
     }
