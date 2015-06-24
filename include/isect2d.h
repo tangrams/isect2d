@@ -6,7 +6,7 @@
 
 #include "aabb.h"
 #include "vec2.h"
-#include "obb.h"q
+#include "obb.h"
 
 /*
  * Performs broadphase collision detecction on _aabbs dividing the screen size _resolution by _split on
