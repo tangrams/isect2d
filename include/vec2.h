@@ -45,11 +45,11 @@ struct Vec2 {
     }
 };
 
-bool operator==(const Vec2& lh, const Vec2& rh) {
+inline bool operator==(const Vec2& lh, const Vec2& rh) {
     return lh.x == rh.x && lh.y == rh.y;
 }
 
-bool operator!=(const Vec2& lh, const Vec2& rh) {
+inline bool operator!=(const Vec2& lh, const Vec2& rh) {
     return !(lh == rh);
 }
 

@@ -1,12 +1,15 @@
 #pragma once
 
-#include "isect2d.h"
 #include <algorithm>
 
+namespace isect2d {
+
 struct OBB {
+    
+    OBB() {}
 
     OBB(float _cx, float _cy, float _a, float _w, float _h) :
-        m_centroid(isect2d::Vec2(_cx, _cy)), m_angle(_a), m_width(_w), m_height(_h) {
+        m_width(_w), m_height(_h), m_angle(_a), m_centroid(isect2d::Vec2(_cx, _cy)) {
 
         update();
     }
@@ -99,11 +102,11 @@ private:
 
 };
 
-bool operator==(const OBB& lh, const OBB& rh) {
+inline bool operator==(const OBB& lh, const OBB& rh) {
     return lh.getCentroid() == rh.getCentroid() && lh.getAngle() == rh.getAngle();
 }
 
-bool operator!=(const OBB& lh, const OBB& rh) {
+inline bool operator!=(const OBB& lh, const OBB& rh) {
     return !(lh == rh);
 }
 
@@ -138,8 +141,8 @@ static bool axisCollide(const OBB& _a, const OBB& _b, const isect2d::Vec2* axes)
     return true;
 }
 
-static bool intersect(const OBB& _a, const OBB& _b) {
+inline static bool intersect(const OBB& _a, const OBB& _b) {
     return axisCollide(_a, _b, _a.getAxes()) && axisCollide(_a, _b, _b.getAxes());
 }
 
-
+}
