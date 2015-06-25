@@ -9,10 +9,9 @@
 
 #include <GLFW/glfw3.h>
 
-using namespace isect2d;
-
-#define N_BOX 60
-#define CIRCLES
+#define N_BOX 2000
+//#define CIRCLES
+#define AREA
 
 GLFWwindow* window;
 float width = 800;
@@ -22,7 +21,7 @@ float dpiRatio = 1;
 
 bool pause = false;
 
-std::vector<OBB> obbs;
+std::vector<isect2d::OBB> obbs;
 
 float rand_0_1(float scale) {
     return ((float)rand() / (float)(RAND_MAX)) * scale;
@@ -60,7 +59,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 void initBBoxes() {
 
-#ifdef CIRCLES
+#if defined CIRCLES
     int n = N_BOX;
     float o = (2 * M_PI) / n;
     float size = 200;
@@ -72,6 +71,22 @@ void initBBoxes() {
         obbs.push_back(OBB(cos(o * i) * size + width / 2,
                     sin(o * i) * size + height / 2, r,
                     r + boxSize * 8, r * boxSize / 3 + boxSize));
+    }
+#elif defined AREA
+    int n = N_BOX;
+    float boxSize = 5;
+                
+    std::default_random_engine generator;
+    std::uniform_real_distribution<double> xDistribution(-350.0,350.0);
+    std::uniform_real_distribution<double> yDistribution(-250.0,250.0);
+    std::uniform_real_distribution<double> boxScaleDist(-2.0f,2.0f);
+    for(int i = 0; i < n; i++) {
+        float boxSizeFactorW = boxScaleDist(generator);
+        float boxSizeFactorH = boxScaleDist(generator);
+        float xVal = xDistribution(generator) + width/2.0f;
+        float yVal = yDistribution(generator) + height/2.0f;
+        float angle = yVal/(xVal+1.0f);
+        obbs.push_back(isect2d::OBB(xVal, yVal, angle+M_PI*i/4, boxSize-boxSizeFactorW, boxSize-boxSizeFactorH));
     }
 #else
     int n = 4;
@@ -131,7 +146,7 @@ void drawAABB(const isect2d::AABB& _aabb) {
     line(_aabb.getMin().x, _aabb.getMax().y, _aabb.getMax().x, _aabb.getMax().y);
 }
 
-void drawOBB(const OBB& obb, bool isect) {
+void drawOBB(const isect2d::OBB& obb, bool isect) {
     const isect2d::Vec2* quad = obb.getQuad();
 
     for(int i = 0; i < 4; ++i) {
@@ -174,21 +189,23 @@ void render() {
             drawOBB(obb, false);
         }
 
-        // bruteforce (test all obbs)
+        // bruteforce broad phase
+        std::vector<isect2d::AABB> aabbsBruteforce;
+        std::set<std::pair<int, int>> pairsBruteforce;
         {
-            const clock_t startBruteForce = clock();
-            std::set<std::pair<int, int>> p;
-            for (size_t i = 0; i < obbs.size(); ++i) {
-                for (size_t j = i + 1; j < obbs.size(); ++j) {
-                    if (intersect(obbs[i], obbs[j])) {
-                        p.insert({ i, j });
-                    }
-                }
+            const clock_t beginBroadPhaseTime = clock();
+            
+            for (auto& obb : obbs) {
+                auto aabb = obb.getExtent();
+                aabb.m_userData = (void*)&obb;
+                aabbsBruteforce.push_back(aabb);
             }
-            std::cout << "broadphase: " << float(clock() - startBruteForce) / CLOCKS_PER_SEC * 1000 << "ms ";
+            pairsBruteforce = intersect(aabbsBruteforce);
+            
+            std::cout << "bruteforce broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
         }
-
-        // broad phase
+        
+        // grid broad phase
         std::vector<isect2d::AABB> aabbs;
         std::set<std::pair<int, int>> pairs;
         {
@@ -199,9 +216,9 @@ void render() {
                 aabb.m_userData = (void*)&obb;
                 aabbs.push_back(aabb);
             }
-            pairs = intersect(aabbs);
+            pairs = intersect(aabbs, {4, 4}, {800, 600});
 
-            std::cout << "bvh broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
+            std::cout << "grid broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
         }
 
         // narrow phase
@@ -228,31 +245,6 @@ void render() {
             }
 
             std::cout << "narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
-        }
-
-        // bvh drawing
-        {
-            isect2d::BVH bvh(aabbs);
-
-            isect2d::BVHNode* node = bvh.getRoot();
-            std::stack<isect2d::BVHNode*> todo;
-            todo.push(node);
-
-            while (todo.size() != 0) {
-                node = todo.top();
-                todo.pop();
-
-                if (node == nullptr)
-                    continue;
-                if (node->m_proxy)
-                    drawAABB(*node->m_proxy);
-                if (node->isLeaf()) {
-                    drawAABB(*node->m_aabb);
-                }
-
-                todo.push(node->m_leftChild);
-                todo.push(node->m_rightChild);
-            }
         }
 
         glfwSwapBuffers(window);

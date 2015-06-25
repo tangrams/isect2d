@@ -1,26 +1,80 @@
 #pragma once
 
 #include <cmath>
-#include <algorithm>
-#include <limits>
 #include <set>
-#include <iostream>
+#include <vector>
 
 #include "aabb.h"
 #include "vec2.h"
-#include "bvh.h"
 #include "obb.h"
 
-#define BRUTEFORCE
+/*
+ * Performs broadphase collision detecction on _aabbs dividing the screen size _resolution by _split on
+ * X and Y dimension
+ * Returns the set of colliding pairs in the _aabbs container
+ */
+inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs,
+                                                      isect2d::Vec2 _split, isect2d::Vec2 _resolution) {
+    struct AABBPair {
+        const isect2d::AABB* aabb;
+        unsigned int index;
+    };
+    
+    std::set<std::pair<int, int>> pairs;
+    int n = int(_split.x * _split.y);
+    std::vector<AABBPair>* gridAABBs = new std::vector<AABBPair>[n];
+    
+    const short xpad = short(ceilf(_resolution.x / _split.x));
+    const short ypad = short(ceilf(_resolution.y / _split.y));
+    
+    short x = 0, y = 0;
 
+    for (int j = 0; j < _split.y; ++j) {
+        for (int i = 0; i < _split.x; ++i) {
+            isect2d::AABB cell(x, y, x + xpad, y + ypad);
+
+            for (unsigned int index = 0; index < _aabbs.size(); ++index) {
+                const isect2d::AABB* aabb = &_aabbs[index];
+                // test the aabb against the current grid cell
+                if (cell.intersect(*aabb)) {
+                    gridAABBs[int(i + j * _split.x)].push_back({aabb, index});
+                }
+            }
+            x += xpad;
+            
+            if (x >= _resolution.x) {
+                x = 0;
+                y += ypad;
+            }
+        }
+    }
+    
+    for (int i = 0; i < n; ++i) {
+        auto& v = gridAABBs[i];
+        for (size_t j = 0; j < v.size(); ++j) {
+            for (size_t k = j + 1; k < v.size(); ++k) {
+                if (v[j].index != v[k].index && v[j].aabb->intersect(*v[k].aabb)) {
+                    pairs.insert({ v[j].index, v[k].index });
+                }
+            }
+        }
+    }
+    
+    delete[] gridAABBs;
+    return std::move(pairs);
+}
+
+/*
+ * Performs bruteforce broadphase collision detection on _aabbs
+ * Returns the set of colliding pairs in the _aabbs container
+ */
 inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs) {
     std::set<std::pair<int, int>> pairs;
-
+    
     if (_aabbs.size() == 0) {
         return pairs;
     }
-
-#ifdef BRUTEFORCE
+    
     for (size_t i = 0; i < _aabbs.size(); ++i) {
         for (size_t j = i + 1; j < _aabbs.size(); ++j) {
             if (_aabbs[i].intersect(_aabbs[j])) {
@@ -28,43 +82,7 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
             }
         }
     }
-#else
-    isect2d::BVH bvh(_aabbs);
-
-    if (!bvh.getRoot()) {
-        return pairs;
-    }
-
-    isect2d::BVHNode* node;
-    std::stack<isect2d::BVHNode*> todo;
-
-    for (size_t i = 0; i < _aabbs.size(); ++i) {
-        const isect2d::AABB& aabb = _aabbs[i];
-        todo.push(bvh.getRoot());
-
-        while (todo.size() != 0) {
-            node = todo.top();
-            todo.pop();
-
-            if (!node) {
-                continue;
-            }
-
-            if (node->isLeaf()) {
-                if (aabb != *node->m_aabb && aabb.intersect(*node->m_aabb)) {
-                    auto it = std::find(_aabbs.begin() + i, _aabbs.end(), *node->m_aabb);
-                    pairs.insert({ i, it - _aabbs.begin() });
-                }
-            } else {
-                if (aabb.intersect(*node->m_proxy)) {
-                    todo.push(node->m_leftChild);
-                    todo.push(node->m_rightChild);
-                }
-            }
-        }
-    }
-#endif
-
+    
     return pairs;
 }
 
