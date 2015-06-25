@@ -43,6 +43,16 @@ struct AABB {
         }
         return Y;
     }
+    
+    void include(float _x, float _y) {
+        float x0 = std::min(m_min.x, _x);
+        float x1 = std::max(m_max.x, _x);
+        float y0 = std::min(m_min.y, _y);
+        float y1 = std::max(m_max.y, _y);
+        
+        m_min = {x0, y0};
+        m_max = {x1 - x0, y1 - y0};
+    }
 
     void* m_userData;
 
@@ -51,7 +61,7 @@ struct AABB {
 
 };
 
-static AABB unionAABB(const AABB& _aabb1, const AABB& _aabb2) {
+static inline AABB unionAABB(const AABB& _aabb1, const AABB& _aabb2) {
     AABB aabb;
 
     aabb.m_min.x = std::min(_aabb1.m_min.x, _aabb2.m_min.x);
