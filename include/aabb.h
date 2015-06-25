@@ -2,6 +2,7 @@
 
 #include "vec2.h"
 #include <cmath>
+#include <climits>
 #include <algorithm>
 
 namespace isect2d {
