@@ -18,7 +18,11 @@ for (auto& obb : obbs) {
     aabbs.push_back(aabb);
 }
 
-auto pairs = intersect(aabbs, {4, 4}, {800, 600});
+auto pairs = intersect(
+    aabbs, 
+    {4, 4},     // split resolution  
+    {800, 600}, // screen resolution
+);
 
 // Narrow-phase
 for (auto& pair : pairs) {
