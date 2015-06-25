@@ -23,9 +23,12 @@ list(APPEND GLFW_LDFLAGS
     "-framework CoreFoundation"
     "-framework CoreVideo")
 
-include_directories(include)
+add_subdirectory(${PROJECT_SOURCE_DIR}/tests/box2d/)
+include_directories(${PROJECT_SOURCE_DIR}/tests/box2d/)
+include_directories(${PROJECT_SOURCE_DIR}/tests/)
+include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_executable(${EXECUTABLE_NAME} tests/main.cpp include/isect2d.h)
+add_executable(${EXECUTABLE_NAME} tests/b2test.cpp include/isect2d.h)
 
-target_link_libraries(${EXECUTABLE_NAME} ${GLFW_LDFLAGS})
+target_link_libraries(${EXECUTABLE_NAME} Box2D ${GLFW_LDFLAGS})
 

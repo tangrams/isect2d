@@ -5,7 +5,7 @@
 namespace isect2d {
 
 struct OBB {
-    
+
     OBB() {}
 
     OBB(float _cx, float _cy, float _a, float _w, float _h) :
@@ -69,6 +69,8 @@ struct OBB {
 
         return isect2d::AABB(aabb[0], aabb[1], aabb[2], aabb[3]);
     }
+
+    void* m_userData;
 
 private:
 

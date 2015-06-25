@@ -6,18 +6,17 @@
 #include <memory>
 #include <random>
 #include <stack>
+#include "Box2D.h"
 
 #include <GLFW/glfw3.h>
 
 #define N_BOX 2000
-//#define CIRCLES
 #define AREA
 
 GLFWwindow* window;
 float width = 800;
 float height = 600;
 float dpiRatio = 1;
-
 
 bool pause = false;
 
@@ -59,23 +58,9 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 void initBBoxes() {
 
-#if defined CIRCLES
-    int n = N_BOX;
-    float o = (2 * M_PI) / n;
-    float size = 200;
-    float boxSize = n / (0.4 * n);
-
-    for (int i = 0; i < n; ++i) {
-        float r = rand_0_1(20);
-
-        obbs.push_back(OBB(cos(o * i) * size + width / 2,
-                    sin(o * i) * size + height / 2, r,
-                    r + boxSize * 8, r * boxSize / 3 + boxSize));
-    }
-#elif defined AREA
     int n = N_BOX;
     float boxSize = 5;
-                
+
     std::default_random_engine generator;
     std::uniform_real_distribution<double> xDistribution(-350.0,350.0);
     std::uniform_real_distribution<double> yDistribution(-250.0,250.0);
@@ -88,20 +73,6 @@ void initBBoxes() {
         float angle = yVal/(xVal+1.0f);
         obbs.push_back(isect2d::OBB(xVal, yVal, angle+M_PI*i/4, boxSize-boxSizeFactorW, boxSize-boxSizeFactorH));
     }
-#else
-    int n = 4;
-    float o = (2 * M_PI) / n;
-    float size = 50;
-    float boxSize = 15;
-
-    for (int i = 0; i < n; ++i) {
-        float r = rand_0_1(20);
-
-        obbs.push_back(OBB(cos(o * i) * size + width / 2,
-                    sin(o * i) * size + height / 2, r,
-                    r + boxSize * 8, r * boxSize / 3 + boxSize));
-    }
-#endif
 
 }
 
@@ -194,17 +165,17 @@ void render() {
         std::set<std::pair<int, int>> pairsBruteforce;
         {
             const clock_t beginBroadPhaseTime = clock();
-            
+
             for (auto& obb : obbs) {
                 auto aabb = obb.getExtent();
                 aabb.m_userData = (void*)&obb;
                 aabbsBruteforce.push_back(aabb);
             }
             pairsBruteforce = intersect(aabbsBruteforce);
-            
+
             std::cout << "bruteforce broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
         }
-        
+
         // grid broad phase
         std::vector<isect2d::AABB> aabbs;
         std::set<std::pair<int, int>> pairs;
