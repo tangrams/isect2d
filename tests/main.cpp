@@ -178,8 +178,8 @@ void render() {
         {
             const clock_t startBruteForce = clock();
             std::set<std::pair<int, int>> p;
-            for (int i = 0; i < obbs.size(); ++i) {
-                for (int j = i + 1; j < obbs.size(); ++j) {
+            for (size_t i = 0; i < obbs.size(); ++i) {
+                for (size_t j = i + 1; j < obbs.size(); ++j) {
                     if (intersect(obbs[i], obbs[j])) {
                         p.insert({ i, j });
                     }
