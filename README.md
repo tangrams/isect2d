@@ -26,10 +26,7 @@ auto pairs = intersect(
 
 // Narrow-phase
 for (auto& pair : pairs) {
-    auto obb1 = obbs[pair.first];
-    auto obb2 = obbs[pair.second];
-
-    if (intersect(obb1, obb2)) {
+    if (intersect(obbs[pair.first], obbs[pair.second])) {
         // Both oriented bounding boxes collide
     }
 }
