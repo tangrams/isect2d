@@ -5,7 +5,7 @@
 namespace isect2d {
 
 struct OBB {
-    
+
     OBB() {}
 
     OBB(float _cx, float _cy, float _a, float _w, float _h) :
@@ -118,7 +118,7 @@ static isect2d::Vec2 projectToAxis(const OBB& _obb, const isect2d::Vec2& axis) {
     const isect2d::Vec2* p = _obb.getQuad();
 
     for (int i = 0; i < 4; ++i) {
-        isect2d::Vec2 proj = project(p[i], axis);
+        isect2d::Vec2 proj = axis * p[i].dot(axis);
         double d = proj.dot(axis);
 
         min = std::min(min, d);
