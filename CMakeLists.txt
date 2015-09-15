@@ -20,7 +20,7 @@ include_directories(include)
 
 add_executable(${EXECUTABLE_NAME} tests/main.cpp include/isect2d.h)
 
-target_link_libraries(${EXECUTABLE_NAME} ${GLFW_LIBRARIES})
+target_link_libraries(${EXECUTABLE_NAME} ${GLFW_STATIC_LIBRARIES})
 
 if(APPLE)
     target_link_libraries(${EXECUTABLE_NAME} "-framework OpenGL")

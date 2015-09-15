@@ -19,7 +19,7 @@ struct AABB {
         : m_min(_minx, _miny), m_max(_maxx, _maxy) {
     }
 
-    bool intersect(const AABB& _other) const {
+    inline bool intersect(const AABB& _other) const {
     	return _other.m_max.x >= m_min.x &&
     		   _other.m_max.y >= m_min.y &&
     		   _other.m_min.x <= m_max.x &&
