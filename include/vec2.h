@@ -7,6 +7,11 @@ namespace isect2d {
 struct Vec2 {
     float x, y;
 
+  Vec2(const Vec2& other) {
+    x = other.x;
+    y = other.y;
+  }
+
     Vec2(float _x = 0, float _y = 0) {
         x = _x;
         y = _y;

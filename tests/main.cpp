@@ -75,7 +75,7 @@ void initBBoxes() {
 #elif defined AREA
     int n = N_BOX;
     float boxSize = 5;
-                
+
     std::default_random_engine generator;
     std::uniform_real_distribution<double> xDistribution(-350.0,350.0);
     std::uniform_real_distribution<double> yDistribution(-250.0,250.0);
@@ -86,7 +86,9 @@ void initBBoxes() {
         float xVal = xDistribution(generator) + width/2.0f;
         float yVal = yDistribution(generator) + height/2.0f;
         float angle = yVal/(xVal+1.0f);
-        obbs.push_back(isect2d::OBB(xVal, yVal, angle+M_PI*i/4, boxSize-boxSizeFactorW, boxSize-boxSizeFactorH));
+        obbs.push_back(isect2d::OBB(xVal, yVal, angle+M_PI*i/4,
+                                    boxSize-boxSizeFactorW,
+                                    boxSize-boxSizeFactorH));
     }
 #else
     int n = 4;
@@ -168,6 +170,11 @@ void drawOBB(const isect2d::OBB& obb, bool isect) {
 
 void render() {
 
+  const int n1 = 4;
+  const int n2 = 16;
+
+  ISect2D context({n2, n2}, {800, 600});
+
     while (!glfwWindowShouldClose(window)) {
         update();
 
@@ -189,43 +196,83 @@ void render() {
             drawOBB(obb, false);
         }
 
-        // bruteforce broad phase
-        std::vector<isect2d::AABB> aabbsBruteforce;
-        std::set<std::pair<int, int>> pairsBruteforce;
-        {
-            const clock_t beginBroadPhaseTime = clock();
-            
-            for (auto& obb : obbs) {
-                auto aabb = obb.getExtent();
-                aabb.m_userData = (void*)&obb;
-                aabbsBruteforce.push_back(aabb);
-            }
-            pairsBruteforce = intersect(aabbsBruteforce);
-            
-            std::cout << "bruteforce broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
-        }
-        
+        float sum1 = 0, sum2 = 0;
+
         // grid broad phase
         std::vector<isect2d::AABB> aabbs;
         std::set<std::pair<int, int>> pairs;
         {
+            for (auto& obb : obbs) {
+                auto aabb = obb.getExtent();
+                aabb.m_userData = (void*)&obb;
+                aabbs.push_back(aabb);
+            }
+
             const clock_t beginBroadPhaseTime = clock();
+
+            pairs = intersect(aabbs, {n1, n1}, {800, 600});
+
+            float broadTime = (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000;
+
+            // narrow phase
+            clock_t beginNarrowTime = clock();
+
+            for (auto pair : pairs) {
+
+                auto obb1 = obbs[pair.first];
+                auto obb2 = obbs[pair.second];
+
+                intersect(obb1, obb2);
+            }
+            float narrowTime = (float(clock() - beginNarrowTime) / CLOCKS_PER_SEC) * 1000;
+
+            std::cout << "grid1: " << broadTime << "\t" << narrowTime <<"ms "  << "pairs: " << pairs.size() << std::endl;
+
+            sum1 = broadTime + narrowTime;
+        }
+
+        // grid broad phase
+        {
+            std::vector<isect2d::AABB> aabbs;
 
             for (auto& obb : obbs) {
                 auto aabb = obb.getExtent();
                 aabb.m_userData = (void*)&obb;
                 aabbs.push_back(aabb);
             }
-            pairs = intersect(aabbs, {4, 4}, {800, 600});
 
-            std::cout << "grid broadphase: " << (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000 << "ms ";
+            const clock_t beginBroadPhaseTime = clock();
+            context.clear();
+
+            context.intersect(aabbs);
+
+            float broadTime = (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000;
+
+            // narrow phase
+            clock_t beginNarrowTime = clock();
+
+            for (auto pair : context.pairs) {
+
+                auto obb1 = obbs[pair.first];
+                auto obb2 = obbs[pair.second];
+
+                intersect(obb1, obb2);
+            }
+            float narrowTime = (float(clock() - beginNarrowTime) / CLOCKS_PER_SEC) * 1000;
+
+            std::cout << "grid2: " << broadTime << "\t" << narrowTime <<"ms "  << "pairs: " << context.pairs.size() << std::endl;
+
+            sum2 = broadTime + narrowTime;
+
         }
+
+        std::cout << "sum: " << sum1 <<" | " << sum2 << "  diff: " << (sum1 - sum2) << "ms"<< std::endl;
 
         // narrow phase
         {
             clock_t narrowTime = 0;
 
-            for (auto pair : pairs) {
+            for (auto pair : context.pairs) {
                 clock_t beginNarrowTime;
 
                 auto obb1 = obbs[pair.first];
@@ -244,7 +291,7 @@ void render() {
                 }
             }
 
-            std::cout << "narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
+            //std::cout << " / narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
         }
 
         glfwSwapBuffers(window);
@@ -260,4 +307,3 @@ int main() {
 
     return 0;
 }
-
