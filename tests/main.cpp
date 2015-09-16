@@ -210,7 +210,7 @@ void render() {
 
         // grid broad phase
         std::vector<AABB> aabbs;
-        std::set<std::pair<int, int>> pairs;
+        std::unordered_set<std::pair<int, int>> pairs;
         {
             for (auto& obb : obbs) {
                 auto aabb = obb.getExtent();

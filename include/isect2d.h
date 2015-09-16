@@ -108,8 +108,8 @@ struct ISect2D {
 
 
 template<typename V>
-inline static std::set<std::pair<int, int>> intersect(const std::vector<AABB<V>>& _aabbs,
-                                                      V _split, V _resolution) {
+inline static std::unordered_set<std::pair<int, int>> intersect(const std::vector<AABB<V>>& _aabbs,
+                                                                V _split, V _resolution) {
 #if 0
     std::set<std::pair<int, int>> pairs;
 
@@ -134,7 +134,7 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<AABB<V>>
         unsigned int index;
     };
 
-    std::set<std::pair<int, int>> pairs;
+    std::unordered_set<std::pair<int, int>> pairs;
     int n = int(_split.x * _split.y);
     std::vector<AABBPair>* gridAABBs = new std::vector<AABBPair>[n];
 
@@ -168,7 +168,6 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<AABB<V>>
 
         for (size_t j = 0; j < v.size(); ++j) {
             for (size_t k = j + 1; k < v.size(); ++k) {
-                //v[j].index != v[k].index &&
 
                 if (v[j].aabb->intersect(*v[k].aabb)) {
                     pairs.insert({ v[j].index, v[k].index });
