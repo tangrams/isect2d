@@ -38,13 +38,13 @@ struct Vec2 {
         return sqrt(x * x + y * y);
     }
 
-    /* Vec2& normalize() {
-     *     return *this = *this * (1 / length());
-     * } */
+    Vec2& normalize() {
+        return *this = *this * (1 / length());
+    }
 
-    /* float dot(const Vec2& _b) const {
-     *     return x * _b.x + y * _b.y;
-     * } */
+    float dot(const Vec2& _b) const {
+        return x * _b.x + y * _b.y;
+    }
 
     Vec2 perp() const {
         return Vec2(-y, x);
@@ -62,12 +62,6 @@ inline bool operator!=(const Vec2& lh, const Vec2& rh) {
 template<>
 inline float dot(const Vec2& _v, const Vec2& _b) {
   return _v.x * _b.x + _v.y * _b.y;
-}
-
-template<>
-inline Vec2 project(const Vec2& _p, const Vec2& _axis) {
-    float l = _axis.length();
-    return _axis * dot(_p, _axis) * (1 / (l * l));
 }
 
 template<>
