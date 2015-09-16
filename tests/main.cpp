@@ -1,4 +1,5 @@
 #include "isect2d.h"
+#include "vec2.h"
 
 #include <iostream>
 #include <cmath>
@@ -21,7 +22,12 @@ float dpiRatio = 1;
 
 bool pause = false;
 
-std::vector<isect2d::OBB> obbs;
+using Vec2 = isect2d::Vec2;
+
+using OBB = isect2d::OBB<Vec2>;
+using AABB = isect2d::AABB<Vec2>;
+
+std::vector<OBB> obbs;
 
 float rand_0_1(float scale) {
     return ((float)rand() / (float)(RAND_MAX)) * scale;
@@ -86,9 +92,9 @@ void initBBoxes() {
         float xVal = xDistribution(generator) + width/2.0f;
         float yVal = yDistribution(generator) + height/2.0f;
         float angle = yVal/(xVal+1.0f);
-        obbs.push_back(isect2d::OBB(xVal, yVal, angle+M_PI*i/4,
-                                    boxSize-boxSizeFactorW,
-                                    boxSize-boxSizeFactorH));
+        obbs.push_back(OBB(xVal, yVal, angle+M_PI*i/4,
+                           boxSize-boxSizeFactorW,
+                           boxSize-boxSizeFactorH));
     }
 #else
     int n = 4;
@@ -141,15 +147,15 @@ void cross(float x, float y, float size = 3) {
     line(x, y - size, x, y + size);
 }
 
-void drawAABB(const isect2d::AABB& _aabb) {
+void drawAABB(const AABB& _aabb) {
     line(_aabb.getMin().x, _aabb.getMin().y, _aabb.getMin().x, _aabb.getMax().y);
     line(_aabb.getMin().x, _aabb.getMin().y, _aabb.getMax().x, _aabb.getMin().y);
     line(_aabb.getMax().x, _aabb.getMin().y, _aabb.getMax().x, _aabb.getMax().y);
     line(_aabb.getMin().x, _aabb.getMax().y, _aabb.getMax().x, _aabb.getMax().y);
 }
 
-void drawOBB(const isect2d::OBB& obb, bool isect) {
-    const isect2d::Vec2* quad = obb.getQuad();
+void drawOBB(const OBB& obb, bool isect) {
+    const auto* quad = obb.getQuad();
 
     for(int i = 0; i < 4; ++i) {
         if(isect) {
@@ -158,8 +164,8 @@ void drawOBB(const isect2d::OBB& obb, bool isect) {
             glColor4f(1.0, 0.5, 0.5, 1.0);
         }
 
-        isect2d::Vec2 start = quad[i];
-        isect2d::Vec2 end = quad[(i + 1) % 4];
+        auto start = quad[i];
+        auto end = quad[(i + 1) % 4];
 
         line(start.x, start.y, end.x, end.y);
 
@@ -170,10 +176,10 @@ void drawOBB(const isect2d::OBB& obb, bool isect) {
 
 void render() {
 
-  const int n1 = 4;
-  const int n2 = 16;
+    const int n1 = 4;
+    const int n2 = 16;
 
-  ISect2D context({n2, n2}, {800, 600});
+    ISect2D<Vec2> context({n2, n2}, {800, 600});
 
     while (!glfwWindowShouldClose(window)) {
         update();
@@ -199,7 +205,7 @@ void render() {
         float sum1 = 0, sum2 = 0;
 
         // grid broad phase
-        std::vector<isect2d::AABB> aabbs;
+        std::vector<AABB> aabbs;
         std::set<std::pair<int, int>> pairs;
         {
             for (auto& obb : obbs) {
@@ -233,8 +239,7 @@ void render() {
 
         // grid broad phase
         {
-            std::vector<isect2d::AABB> aabbs;
-
+            std::vector<AABB> aabbs;
             for (auto& obb : obbs) {
                 auto aabb = obb.getExtent();
                 aabb.m_userData = (void*)&obb;

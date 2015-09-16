@@ -1,21 +1,24 @@
 #pragma once
 
 #include <algorithm>
+#include "vec.h"
 
 namespace isect2d {
 
+template<typename V>
 struct OBB {
 
     OBB() {}
 
     OBB(float _cx, float _cy, float _a, float _w, float _h) :
-        m_width(_w), m_height(_h), m_angle(_a), m_centroid(isect2d::Vec2(_cx, _cy)) {
+        m_width(_w), m_height(_h), m_angle(_a),
+        m_centroid(V(_cx, _cy)) {
 
         update();
     }
 
     void move(const float _px, const float _py) {
-        m_centroid = isect2d::Vec2(_px, _py);
+        m_centroid = V(_px, _py);
 
         update();
     }
@@ -26,15 +29,15 @@ struct OBB {
         update();
     }
 
-    const isect2d::Vec2* getQuad() const {
+    const V* getQuad() const {
         return m_quad;
     }
 
-    const isect2d::Vec2* getAxes() const{
+    const V* getAxes() const{
         return m_axes;
     }
 
-    const isect2d::Vec2& getCentroid() const {
+    const V& getCentroid() const {
         return m_centroid;
     }
 
@@ -51,12 +54,12 @@ struct OBB {
     }
 
     float radius() const {
-        isect2d::Vec2 extent(m_width, m_height);
+        V extent(m_width, m_height);
 
         return extent.length();
     }
 
-    isect2d::AABB getExtent() const {
+    AABB<V> getExtent() const {
         float inf = std::numeric_limits<double>::infinity();
         float aabb[4] = { inf, inf, -inf, -inf };
 
@@ -67,22 +70,33 @@ struct OBB {
             aabb[3] = std::max<float>(m_quad[i].y, aabb[3]);
         }
 
-        return isect2d::AABB(aabb[0], aabb[1], aabb[2], aabb[3]);
+        return { aabb[0], aabb[1], aabb[2], aabb[3] };
     }
 
 private:
 
     void perpAxes() {
-        m_axes[0] = (m_quad[2] - m_quad[3]).normalize();
-        m_axes[1] = (m_quad[2] - m_quad[1]).normalize();
+        m_axes[0] = normalize(m_quad[2] - m_quad[3]);
+        m_axes[1] = normalize(m_quad[2] - m_quad[1]);
     }
 
     void update() {
-        isect2d::Vec2 x( cos(m_angle), sin(m_angle));
-        isect2d::Vec2 y(-sin(m_angle), cos(m_angle));
+        V x;
+        V y;
 
-        x = x * (m_width / 2);
-        y = y * (m_height / 2);
+        if (m_angle == 0) {
+            x = { m_width / 2, 0 };
+            y = { 0, m_height / 2 };
+        } else {
+            float cosa = cos(m_angle);
+            float sina = sin(m_angle);
+
+            x = { cosa , sina };
+            y = { -sina, cosa };
+
+            x = x * (m_width / 2);
+            y = y * (m_height / 2);
+        }
 
         m_quad[0] = m_centroid - x - y; // lower-left
         m_quad[1] = m_centroid + x - y; // lower-right
@@ -96,40 +110,45 @@ private:
     float m_height;
     float m_angle;
 
-    isect2d::Vec2 m_axes[2];
-    isect2d::Vec2 m_centroid;
-    isect2d::Vec2 m_quad[4];
+    V m_axes[2];
+    V m_centroid;
+    V m_quad[4];
 
 };
 
-inline bool operator==(const OBB& lh, const OBB& rh) {
+template<typename V>
+inline bool operator==(const OBB<V>& lh, const OBB<V>& rh) {
     return lh.getCentroid() == rh.getCentroid() && lh.getAngle() == rh.getAngle();
 }
 
-inline bool operator!=(const OBB& lh, const OBB& rh) {
+template<typename V>
+inline bool operator!=(const OBB<V>& lh, const OBB<V>& rh) {
     return !(lh == rh);
 }
 
-static isect2d::Vec2 projectToAxis(const OBB& _obb, const isect2d::Vec2& axis) {
+template<typename V>
+static V projectToAxis(const OBB<V>& _obb, const V& axis) {
     double inf = std::numeric_limits<double>::infinity();
     double min = inf;
     double max = -inf;
 
-    const isect2d::Vec2* p = _obb.getQuad();
+    const V* p = _obb.getQuad();
 
     for (int i = 0; i < 4; ++i) {
-        double d = p[i].dot(axis);
+        double d = dot(p[i], axis);
+
         min = std::min(min, d);
         max = std::max(max, d);
     }
 
-    return isect2d::Vec2(min, max);
+    return V(min, max);
 }
 
-static bool axisCollide(const OBB& _a, const OBB& _b, const isect2d::Vec2* axes) {
+template<typename V>
+static bool axisCollide(const OBB<V>& _a, const OBB<V>& _b, const V* axes) {
     for (int i = 0; i < 2; ++i) {
-        isect2d::Vec2 aproj = projectToAxis(_a, axes[i]);
-        isect2d::Vec2 bproj = projectToAxis(_b, axes[i]);
+        V aproj = projectToAxis(_a, axes[i]);
+        V bproj = projectToAxis(_b, axes[i]);
 
         if (bproj.x > aproj.y || bproj.y < aproj.x) {
             return false;
@@ -139,7 +158,8 @@ static bool axisCollide(const OBB& _a, const OBB& _b, const isect2d::Vec2* axes)
     return true;
 }
 
-inline static bool intersect(const OBB& _a, const OBB& _b) {
+template<typename V>
+inline static bool intersect(const OBB<V>& _a, const OBB<V>& _b) {
     return axisCollide(_a, _b, _a.getAxes()) && axisCollide(_a, _b, _b.getAxes());
 }
 

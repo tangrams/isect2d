@@ -1,6 +1,5 @@
 #pragma once
 
-#include "vec2.h"
 #include <cmath>
 #include <climits>
 #include <algorithm>
@@ -12,34 +11,35 @@ enum Dimension {
     X, Y
 };
 
+template<typename V>
 struct AABB {
     AABB() : AABB(INT_MAX, INT_MAX, -INT_MAX, -INT_MAX) {}
 
     AABB(float _minx, float _miny, float _maxx, float _maxy)
-        : m_min(_minx, _miny), m_max(_maxx, _maxy) {
+        : min(_minx, _miny), max(_maxx, _maxy) {
     }
 
     inline bool intersect(const AABB& _other) const {
-    	return _other.m_max.x >= m_min.x &&
-    		   _other.m_max.y >= m_min.y &&
-    		   _other.m_min.x <= m_max.x &&
-    		   _other.m_min.y <= m_max.y;
+        return _other.max.x >= min.x &&
+                   _other.max.y >= min.y &&
+                   _other.min.x <= max.x &&
+                   _other.min.y <= max.y;
     }
 
-    const Vec2& getMin() const {
-        return m_min;
+    const V& getMin() const {
+        return min;
     }
 
-    const Vec2& getMax() const {
-        return m_max;
+    const V& getMax() const {
+        return max;
     }
 
-    Vec2 getCentroid() const {
-        return (m_min + m_max) * 0.5;
+    V getCentroid() const {
+        return (min + max) * 0.5;
     }
 
     Dimension maxExtent() {
-        Vec2 diagonal = m_max - m_min;
+        V diagonal = max - min;
         if(diagonal.x > diagonal.y) {
             return X;
         }
@@ -47,35 +47,38 @@ struct AABB {
     }
 
     void include(float _x, float _y) {
-        m_min.x = std::min(m_min.x, _x);
-        m_min.y = std::min(m_min.y, _y);
-        m_max.x = std::max(m_max.x, _x);
-        m_max.y = std::max(m_max.y, _y);
+        min.x = std::min(min.x, _x);
+        min.y = std::min(min.y, _y);
+        max.x = std::max(max.x, _x);
+        max.y = std::max(max.y, _y);
     }
 
     void* m_userData;
 
-    Vec2 m_min;
-    Vec2 m_max;
+    V min;
+    V max;
 
 };
 
-static inline AABB unionAABB(const AABB& _aabb1, const AABB& _aabb2) {
-    AABB aabb;
+template<typename V>
+static inline AABB<V> unionAABB(const AABB<V>& _aabb1, const AABB<V>& _aabb2) {
+    AABB<V> aabb;
 
-    aabb.m_min.x = std::min(_aabb1.m_min.x, _aabb2.m_min.x);
-    aabb.m_min.y = std::min(_aabb1.m_min.y, _aabb2.m_min.y);
-    aabb.m_max.x = std::max(_aabb1.m_max.x, _aabb2.m_max.x);
-    aabb.m_max.y = std::max(_aabb1.m_max.y, _aabb2.m_max.y);
+    aabb.min.x = std::min(_aabb1.min.x, _aabb2.min.x);
+    aabb.min.y = std::min(_aabb1.min.y, _aabb2.min.y);
+    aabb.max.x = std::max(_aabb1.max.x, _aabb2.max.x);
+    aabb.max.y = std::max(_aabb1.max.y, _aabb2.max.y);
 
     return aabb;
 }
 
-inline bool operator==(const AABB& lh, const AABB& rh) {
-    return lh.m_min == rh.m_min && lh.m_max == rh.m_max;
+template<typename V>
+inline bool operator==(const AABB<V>& lh, const AABB<V>& rh) {
+    return lh.min == rh.min && lh.max == rh.max;
 }
 
-inline bool operator!=(const AABB& lh, const AABB& rh) {
+template<typename V>
+inline bool operator!=(const AABB<V>& lh, const AABB<V>& rh) {
     return !(lh == rh);
 }
 

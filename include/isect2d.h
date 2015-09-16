@@ -8,7 +8,6 @@
 #include <functional> // for hash function
 
 #include "aabb.h"
-#include "vec2.h"
 #include "obb.h"
 
 
@@ -21,12 +20,14 @@ namespace std {
     };
 }
 
-struct AABBPair {
-    const isect2d::AABB& aabb;
-    size_t index;
-};
-
+template<typename V>
 struct ISect2D {
+
+    struct AABBPair {
+        const isect2d::AABB<V>& aabb;
+        size_t index;
+    };
+
     const int_fast32_t split_x;
     const int_fast32_t split_y;
     const int_fast32_t res_x;
@@ -38,7 +39,7 @@ struct ISect2D {
 
     std::unordered_set<std::pair<int32_t, int32_t>> pairs;
 
-    ISect2D(const isect2d::Vec2 _split, const isect2d::Vec2 _resolution)
+    ISect2D(const V _split, const V _resolution)
       : split_x(_split.x), split_y(_split.y),
         res_x(_resolution.x), res_y(_resolution.y),
         xpad(ceil(res_x / split_x)),
@@ -59,15 +60,15 @@ struct ISect2D {
  * X and Y dimension
  * Returns the set of colliding pairs in the _aabbs container
  */
-  void intersect(const std::vector<isect2d::AABB>& _aabbs) {
+   void intersect(const std::vector<isect2d::AABB<V>>& _aabbs) {
       using i32 = int_fast32_t;
 
       size_t index = 0;
       for (const auto& aabb : _aabbs) {
-          i32 x1 = aabb.m_min.x / xpad;
-          i32 y1 = aabb.m_min.y / ypad;
-          i32 x2 = aabb.m_max.x / xpad + 1;
-          i32 y2 = aabb.m_max.y / ypad + 1;
+          i32 x1 = aabb.min.x / xpad;
+          i32 y1 = aabb.min.y / ypad;
+          i32 x2 = aabb.max.x / xpad + 1;
+          i32 y2 = aabb.max.y / ypad + 1;
 
           x1 = CLAMP(x1, 0, split_x-1);
           y1 = CLAMP(y1, 0, split_y-1);
@@ -100,8 +101,9 @@ struct ISect2D {
 };
 
 
-inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs,
-                                                      isect2d::Vec2 _split, isect2d::Vec2 _resolution) {
+template<typename V>
+inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB<V>>& _aabbs,
+                                                      V _split, V _resolution) {
 #if 0
     std::set<std::pair<int, int>> pairs;
 
@@ -122,7 +124,7 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
 #else
 
     struct AABBPair {
-        const isect2d::AABB* aabb;
+        const isect2d::AABB<V>* aabb;
         unsigned int index;
     };
 
@@ -137,10 +139,10 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
 
     for (int j = 0; j < _split.y; ++j) {
         for (int i = 0; i < _split.x; ++i) {
-            isect2d::AABB cell(x, y, x + xpad, y + ypad);
+            isect2d::AABB<V> cell(x, y, x + xpad, y + ypad);
 
             for (unsigned int index = 0; index < _aabbs.size(); ++index) {
-                const isect2d::AABB* aabb = &_aabbs[index];
+                const isect2d::AABB<V>* aabb = &_aabbs[index];
                 // test the aabb against the current grid cell
                 if (cell.intersect(*aabb)) {
                     gridAABBs[int(i + j * _split.x)].push_back({aabb, index});
@@ -178,7 +180,8 @@ inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d:
  * Performs bruteforce broadphase collision detection on _aabbs
  * Returns the set of colliding pairs in the _aabbs container
  */
-inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB>& _aabbs) {
+template<typename V>
+inline static std::set<std::pair<int, int>> intersect(const std::vector<isect2d::AABB<V>>& _aabbs) {
     std::set<std::pair<int, int>> pairs;
 
     if (_aabbs.size() == 0) {
