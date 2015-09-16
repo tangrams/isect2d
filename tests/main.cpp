@@ -15,7 +15,7 @@
 #define N_CIRCLES 500
 
 #define AREA
-#define N_BOX 1000
+#define N_BOX 2000
 
 GLFWwindow* window;
 float width = 800;
@@ -227,13 +227,19 @@ void render() {
             // narrow phase
             clock_t beginNarrowTime = clock();
 
+            int collisions = 0;
+
             for (auto& pair : pairs) {
-                intersect(obbs[pair.first], obbs[pair.first]);
+                if (intersect(obbs[pair.first], obbs[pair.second]))
+                    collisions++;
             }
+
             float narrowTime = (float(clock() - beginNarrowTime) / CLOCKS_PER_SEC) * 1000;
 
             std::cout << "grid1: " << broadTime << "\t" << narrowTime <<"ms "
-                      << "pairs: " << pairs.size() << std::endl;
+                      << "\tpairs: " << pairs.size()
+                      << "\tcollide: " << collisions
+                      << std::endl;
 
             sum1 = broadTime + narrowTime;
         }
@@ -256,18 +262,23 @@ void render() {
 
             // narrow phase
             clock_t beginNarrowTime = clock();
+            int collisions = 0;
 
             for (auto& pair : context.pairs) {
-                intersect(obbs[pair.first], obbs[pair.first]);
+                if (intersect(obbs[pair.first], obbs[pair.second]))
+                    collisions++;
             }
             float narrowTime = (float(clock() - beginNarrowTime) / CLOCKS_PER_SEC) * 1000;
 
             std::cout << "grid2: " << broadTime << "\t" << narrowTime <<"ms "
-                      << "pairs: " << context.pairs.size() << std::endl;
+                      << "\tpairs: " << context.pairs.size()
+                      << "\tcollide: " << collisions
+                      << std::endl;
 
             sum2 = broadTime + narrowTime;
 
         }
+
 
         std::cout << "sum: " << sum1 <<" | " << sum2 << "  diff: " << (sum1 - sum2) << "ms"<< std::endl;
 
