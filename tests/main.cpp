@@ -10,7 +10,6 @@
 
 #include <GLFW/glfw3.h>
 #include "../../tangram-es/core/include/glm/glm/glm.hpp"
-#include "glm_vec.h"
 
 //#define CIRCLES
 #define N_CIRCLES 500
