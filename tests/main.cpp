@@ -9,20 +9,25 @@
 #include <stack>
 
 #include <GLFW/glfw3.h>
+#include "../../tangram-es/core/include/glm/glm/glm.hpp"
+//#include "../../tangram-es/core/include/glm/glm/gtx/norm.hpp"
+#include "glm_vec.h"
 
-#define N_BOX 2000
 //#define CIRCLES
+#define N_CIRCLES 500
+
 #define AREA
+#define N_BOX 1000
 
 GLFWwindow* window;
 float width = 800;
 float height = 600;
 float dpiRatio = 1;
 
-
 bool pause = false;
 
-using Vec2 = isect2d::Vec2;
+using Vec2 = glm::vec2;
+//using Vec2 = isect2d::Vec2;
 
 using OBB = isect2d::OBB<Vec2>;
 using AABB = isect2d::AABB<Vec2>;
