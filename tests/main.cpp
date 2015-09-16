@@ -160,7 +160,7 @@ void drawAABB(const AABB& _aabb) {
 }
 
 void drawOBB(const OBB& obb, bool isect) {
-    const auto* quad = obb.getQuad();
+    const auto& quad = obb.getQuad();
 
     for(int i = 0; i < 4; ++i) {
         if(isect) {
