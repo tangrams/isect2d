@@ -9,7 +9,10 @@
 #include <stack>
 
 #include <GLFW/glfw3.h>
-#include "../../tangram-es/core/include/glm/glm/glm.hpp"
+
+#ifdef USE_GLM
+#include <glm/glm.hpp>
+#endif
 
 //#define CIRCLES
 #define N_CIRCLES 500
@@ -24,8 +27,11 @@ float dpiRatio = 1;
 
 bool pause = false;
 
+#ifdef USE_GLM
 using Vec2 = glm::vec2;
-//using Vec2 = isect2d::Vec2;
+#else
+using Vec2 = isect2d::Vec2;
+#endif
 
 using OBB = isect2d::OBB<Vec2>;
 using AABB = isect2d::AABB<Vec2>;
@@ -206,12 +212,11 @@ void render() {
             drawOBB(obb, false);
         }
 
-        float sum1 = 0, sum2 = 0;
-
-        // grid broad phase
-        std::vector<AABB> aabbs;
-        std::unordered_set<std::pair<int, int>> pairs;
+        // bruteforce broadphase
         {
+            std::unordered_set<std::pair<int, int>> pairs;
+            std::vector<AABB> aabbs;
+
             for (auto& obb : obbs) {
                 auto aabb = obb.getExtent();
                 aabb.m_userData = (void*)&obb;
@@ -219,29 +224,54 @@ void render() {
             }
 
             const clock_t beginBroadPhaseTime = clock();
-
-            pairs = intersect(aabbs, {n1, n1}, {800, 600});
-
+            pairs = intersect(aabbs);
             float broadTime = (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000;
 
             // narrow phase
             clock_t beginNarrowTime = clock();
-
             int collisions = 0;
-
             for (auto& pair : pairs) {
                 if (intersect(obbs[pair.first], obbs[pair.second]))
                     collisions++;
             }
-
             float narrowTime = (float(clock() - beginNarrowTime) / CLOCKS_PER_SEC) * 1000;
 
-            std::cout << "grid1: " << broadTime << "\t" << narrowTime <<"ms "
-                      << "\tpairs: " << pairs.size()
-                      << "\tcollide: " << collisions
+            std::cout << "0 - broadphase: " << broadTime
+                      << "\t narrowphase: " << narrowTime << "ms"
+                      << "\t pairs: " << pairs.size()
+                      << "\t collision: " << collisions
                       << std::endl;
+        }
 
-            sum1 = broadTime + narrowTime;
+        // grid broad phase
+        {
+            std::vector<AABB> aabbs;
+            std::unordered_set<std::pair<int, int>> pairs;
+
+            for (auto& obb : obbs) {
+                auto aabb = obb.getExtent();
+                aabb.m_userData = (void*)&obb;
+                aabbs.push_back(aabb);
+            }
+
+            const clock_t beginBroadPhaseTime = clock();
+            pairs = intersect(aabbs, {n1, n1}, {800, 600});
+            float broadTime = (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000;
+
+            // narrow phase
+            clock_t beginNarrowTime = clock();
+            int collisions = 0;
+            for (auto& pair : pairs) {
+                if (intersect(obbs[pair.first], obbs[pair.second]))
+                    collisions++;
+            }
+            float narrowTime = (float(clock() - beginNarrowTime) / CLOCKS_PER_SEC) * 1000;
+
+            std::cout << "1 - broadphase: " << broadTime
+                      << "\t narrowphase: " << narrowTime << "ms"
+                      << "\t pairs: " << pairs.size()
+                      << "\t collision: " << collisions
+                      << std::endl;
         }
 
         // grid broad phase
@@ -255,32 +285,26 @@ void render() {
 
             const clock_t beginBroadPhaseTime = clock();
             context.clear();
-
             context.intersect(aabbs);
-
             float broadTime = (float(clock() - beginBroadPhaseTime) / CLOCKS_PER_SEC) * 1000;
 
             // narrow phase
             clock_t beginNarrowTime = clock();
             int collisions = 0;
-
             for (auto& pair : context.pairs) {
                 if (intersect(obbs[pair.first], obbs[pair.second]))
                     collisions++;
             }
             float narrowTime = (float(clock() - beginNarrowTime) / CLOCKS_PER_SEC) * 1000;
 
-            std::cout << "grid2: " << broadTime << "\t" << narrowTime <<"ms "
-                      << "\tpairs: " << context.pairs.size()
-                      << "\tcollide: " << collisions
+            std::cout << "2 - broadphase: " << broadTime
+                      << "\t narrowphase: " << narrowTime << "ms"
+                      << "\t pairs: " << context.pairs.size()
+                      << "\t collision: " << collisions
                       << std::endl;
-
-            sum2 = broadTime + narrowTime;
-
         }
 
-
-        std::cout << "sum: " << sum1 <<" | " << sum2 << "  diff: " << (sum1 - sum2) << "ms"<< std::endl;
+        std::cout << std::endl;
 
         // narrow phase
         {
