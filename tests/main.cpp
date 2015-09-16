@@ -10,7 +10,6 @@
 
 #include <GLFW/glfw3.h>
 #include "../../tangram-es/core/include/glm/glm/glm.hpp"
-//#include "../../tangram-es/core/include/glm/glm/gtx/norm.hpp"
 #include "glm_vec.h"
 
 //#define CIRCLES
@@ -85,7 +84,8 @@ void initBBoxes() {
     }
 #elif defined AREA
     int n = N_BOX;
-    float boxSize = 5;
+    float boxWidth = 30;
+    float boxHeight = 5;
 
     std::default_random_engine generator;
     std::uniform_real_distribution<double> xDistribution(-350.0,350.0);
@@ -98,11 +98,11 @@ void initBBoxes() {
         float yVal = yDistribution(generator) + height/2.0f;
         float angle = yVal/(xVal+1.0f);
         obbs.push_back(OBB(xVal, yVal, angle+M_PI*i/4,
-                           boxSize-boxSizeFactorW,
-                           boxSize-boxSizeFactorH));
+                           boxWidth-boxSizeFactorW,
+                           boxHeight-boxSizeFactorH));
     }
 #else
-    int n = 4;
+    int n = 10;
     float o = (2 * M_PI) / n;
     float size = 50;
     float boxSize = 15;
@@ -228,16 +228,13 @@ void render() {
             // narrow phase
             clock_t beginNarrowTime = clock();
 
-            for (auto pair : pairs) {
-
-                auto obb1 = obbs[pair.first];
-                auto obb2 = obbs[pair.second];
-
-                intersect(obb1, obb2);
+            for (auto& pair : pairs) {
+                intersect(obbs[pair.first], obbs[pair.first]);
             }
             float narrowTime = (float(clock() - beginNarrowTime) / CLOCKS_PER_SEC) * 1000;
 
-            std::cout << "grid1: " << broadTime << "\t" << narrowTime <<"ms "  << "pairs: " << pairs.size() << std::endl;
+            std::cout << "grid1: " << broadTime << "\t" << narrowTime <<"ms "
+                      << "pairs: " << pairs.size() << std::endl;
 
             sum1 = broadTime + narrowTime;
         }
@@ -261,16 +258,13 @@ void render() {
             // narrow phase
             clock_t beginNarrowTime = clock();
 
-            for (auto pair : context.pairs) {
-
-                auto obb1 = obbs[pair.first];
-                auto obb2 = obbs[pair.second];
-
-                intersect(obb1, obb2);
+            for (auto& pair : context.pairs) {
+                intersect(obbs[pair.first], obbs[pair.first]);
             }
             float narrowTime = (float(clock() - beginNarrowTime) / CLOCKS_PER_SEC) * 1000;
 
-            std::cout << "grid2: " << broadTime << "\t" << narrowTime <<"ms "  << "pairs: " << context.pairs.size() << std::endl;
+            std::cout << "grid2: " << broadTime << "\t" << narrowTime <<"ms "
+                      << "pairs: " << context.pairs.size() << std::endl;
 
             sum2 = broadTime + narrowTime;
 
@@ -280,28 +274,20 @@ void render() {
 
         // narrow phase
         {
-            clock_t narrowTime = 0;
-
-            for (auto pair : context.pairs) {
-                clock_t beginNarrowTime;
-
+            for (auto& pair : context.pairs) {
                 auto obb1 = obbs[pair.first];
                 auto obb2 = obbs[pair.second];
 
-                // narrow phase
-                beginNarrowTime = clock();
                 bool isect = intersect(obb1, obb2);
-                narrowTime += (clock() - beginNarrowTime);
 
                 if (isect) {
                     drawOBB(obb1, true);
                     drawOBB(obb2, true);
 
-                    line(obb1.getCentroid().x, obb1.getCentroid().y, obb2.getCentroid().x, obb2.getCentroid().y);
+                    line(obb1.getCentroid().x, obb1.getCentroid().y,
+                         obb2.getCentroid().x, obb2.getCentroid().y);
                 }
             }
-
-            //std::cout << " / narrowphase: " << (float(narrowTime) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
         }
 
         glfwSwapBuffers(window);
