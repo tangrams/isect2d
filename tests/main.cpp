@@ -184,7 +184,7 @@ void render() {
     const int n1 = 4;
     const int n2 = 16;
 
-    ISect2D<Vec2> context({n2, n2}, {800, 600});
+    isect2d::ISect2D<Vec2> context({n2, n2}, {800, 600});
 
     while (!glfwWindowShouldClose(window)) {
         update();
