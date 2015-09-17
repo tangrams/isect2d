@@ -30,41 +30,47 @@ static constexpr const T clamp(T val, T min, T max) {
 
 template<typename V>
 struct ISect2D {
+    using i32 = int_fast32_t;
 
     struct Pair {
-    Pair(int32_t _a, int32_t _b, int _next) : first(_a), second(_b), next(_next) {}
-        int32_t first;
-        int32_t second;
+    Pair(int _a, int _b, int _next) : first(_a), second(_b), next(_next) {}
+        int first;
+        int second;
 
         int next;
     };
 
-    const int_fast32_t split_x;
-    const int_fast32_t split_y;
-    const int_fast32_t res_x;
-    const int_fast32_t res_y;
-    const int_fast32_t xpad;
-    const int_fast32_t ypad;
+    i32 split_x;
+    i32 split_y;
+    i32 res_x;
+    i32 res_y;
+    i32 xpad;
+    i32 ypad;
 
     std::vector<std::vector<int32_t>> gridAABBs;
     std::vector<Pair> pairs;
     std::vector<int> pairMap;
 
-    ISect2D(const V _split, const V _resolution, size_t collisionHashSize = 2048)
-      : split_x(_split.x), split_y(_split.y),
-        res_x(_resolution.x), res_y(_resolution.y),
-        xpad(ceil(res_x / split_x)),
-        ypad(ceil(res_y / split_y)) {
-
-        gridAABBs.resize(split_x * split_y);
+    ISect2D(size_t collisionHashSize = 2048) {
         pairMap.assign(collisionHashSize, -1);
     }
 
+    void resize(const V _split, const V _resolution) {
+        split_x = _split.x;
+        split_y = _split.y;
+        res_x = _resolution.x;
+        res_y = _resolution.y;
 
-  void clear() {
-      pairs.clear();
-      pairMap.assign(pairMap.size(), -1);
-  }
+        xpad = ceil(res_x / split_x);
+        ypad = ceil(res_y / split_y);
+
+        gridAABBs.resize(split_x * split_y);
+    }
+
+    void clear() {
+        pairs.clear();
+        pairMap.assign(pairMap.size(), -1);
+    }
 
 /*
  * Performs broadphase collision detection on _aabbs dividing the
@@ -72,7 +78,6 @@ struct ISect2D {
  * set of colliding pairs in the _aabbs container
  */
    void intersect(const std::vector<AABB<V>>& _aabbs) {
-      using i32 = int_fast32_t;
 
       size_t index = 0;
       for (const auto& aabb : _aabbs) {
