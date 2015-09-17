@@ -79,6 +79,8 @@ struct ISect2D {
  */
    void intersect(const std::vector<AABB<V>>& _aabbs) {
 
+      clear();
+
       size_t index = 0;
       for (const auto& aabb : _aabbs) {
           i32 x1 = aabb.min.x / xpad;
@@ -101,7 +103,7 @@ struct ISect2D {
       }
 
       for (auto& v : gridAABBs) {
-          if (v.empty()) {continue;}
+          if (v.empty()) { continue; }
           // check all items against each other
           for (size_t j = 0; j < v.size()-1; ++j) {
               const auto& a(_aabbs[v[j]]);
@@ -136,7 +138,7 @@ struct ISect2D {
 
 private:
     // from fontstash
-    static size_t hash_int(uint32_t a) {
+    static uint64_t hash_int(uint32_t a) {
         a += ~(a<<15);
         a ^=  (a>>10);
         a +=  (a<<3);
@@ -148,7 +150,7 @@ private:
 
     // from https://gist.github.com/badboy/6267743
     // - 64 bit to 32 bit Hash Functions
-    static size_t hash_key(size_t key) {
+    static uint32_t hash_key(uint64_t key) {
         key = (~key) + (key << 18);
         key = key ^ (key >> 31);
         key = key * 21;
@@ -167,8 +169,8 @@ private:
  * NB: Likely to be slower than ISect2D::intersect() !
  */
 template<typename V>
-inline static std::unordered_set<std::pair<int, int>> intersect(const std::vector<AABB<V>>& _aabbs,
-                                                                V _split, V _resolution) {
+static std::unordered_set<std::pair<int, int>> intersect(const std::vector<AABB<V>>& _aabbs,
+                                                         V _split, V _resolution) {
     struct AABBPair {
         const AABB<V>* aabb;
         unsigned int index;
@@ -209,7 +211,7 @@ inline static std::unordered_set<std::pair<int, int>> intersect(const std::vecto
         for (size_t j = 0; j < v.size(); ++j) {
             for (size_t k = j + 1; k < v.size(); ++k) {
 
-                if (v[j].aabb->intersect(*v[k].aabb)) {
+                if (v[j].index != v[k].index && v[j].aabb->intersect(*v[k].aabb)) {
                     pairs.insert({ v[j].index, v[k].index });
                 }
             }
@@ -225,7 +227,7 @@ inline static std::unordered_set<std::pair<int, int>> intersect(const std::vecto
  * Returns the set of colliding pairs in the _aabbs container
  */
 template<typename V>
-inline static std::unordered_set<std::pair<int, int>> intersect(const std::vector<AABB<V>>& _aabbs) {
+static std::unordered_set<std::pair<int, int>> intersect(const std::vector<AABB<V>>& _aabbs) {
     std::unordered_set<std::pair<int, int>> pairs;
 
     if (_aabbs.size() == 0) {
