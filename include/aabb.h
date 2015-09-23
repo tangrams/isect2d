@@ -47,13 +47,10 @@ struct AABB {
     }
 
     void include(float _x, float _y) {
-        float x0 = std::min(m_min.x, _x);
-        float x1 = std::max(m_max.x, _x);
-        float y0 = std::min(m_min.y, _y);
-        float y1 = std::max(m_max.y, _y);
-
-        m_min = {x0, y0};
-        m_max = {x1 - x0, y1 - y0};
+        m_min.x = std::min(m_min.x, _x);
+        m_min.y = std::min(m_min.y, _y);
+        m_max.x = std::max(m_max.x, _x);
+        m_max.y = std::max(m_max.y, _y);
     }
 
     void* m_userData;
