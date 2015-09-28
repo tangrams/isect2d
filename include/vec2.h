@@ -1,11 +1,17 @@
 #pragma once
 
 #include <cmath>
+#include "vec.h"
 
 namespace isect2d {
 
 struct Vec2 {
     float x, y;
+
+    Vec2(const Vec2& other) {
+        x = other.x;
+        y = other.y;
+    }
 
     Vec2(float _x = 0, float _y = 0) {
         x = _x;
@@ -53,9 +59,14 @@ inline bool operator!=(const Vec2& lh, const Vec2& rh) {
     return !(lh == rh);
 }
 
-inline Vec2 project(const Vec2& _p, const Vec2& _axis) {
-    float l = _axis.length();
-    return _axis * _p.dot(_axis) * (1 / (l * l));
+template<>
+inline float dot(const Vec2& _v, const Vec2& _b) {
+  return _v.x * _b.x + _v.y * _b.y;
+}
+
+template<>
+inline Vec2 normalize(const Vec2& _v) {
+  return _v * (1.0f / _v.length());
 }
 
 }
