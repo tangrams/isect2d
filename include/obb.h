@@ -146,7 +146,7 @@ static V projectToAxis(const OBB<V>& _obb, const V& axis) {
 }
 
 template<typename V>
-inline static bool axisCollide(const OBB<V>& _a, const OBB<V>& _b, const std::array<V, 2> axes) {
+inline static bool axisCollide(const OBB<V>& _a, const OBB<V>& _b, const std::array<V, 2>& axes) {
     for (int i = 0; i < 2; ++i) {
         V aproj = projectToAxis(_a, axes[i]);
         V bproj = projectToAxis(_b, axes[i]);

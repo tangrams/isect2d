@@ -89,7 +89,7 @@ void initBBoxes() {
     }
 #elif defined AREA
     int n = N_BOX;
-    float boxWidth = 30;
+    float boxWidth = 10;
     float boxHeight = 5;
 
     std::default_random_engine generator;
@@ -189,7 +189,8 @@ void render() {
     const int n1 = 4;
     const int n2 = 16;
 
-    isect2d::ISect2D<Vec2> context({n2, n2}, {800, 600});
+    isect2d::ISect2D<Vec2> context;
+    context.resize({n2, n2}, {800, 600});
 
     while (!glfwWindowShouldClose(window)) {
         update();
