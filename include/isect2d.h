@@ -219,7 +219,7 @@ static std::unordered_set<std::pair<int, int>> intersect(const std::vector<AABB<
     }
 
     delete[] gridAABBs;
-    return std::move(pairs);
+    return pairs;
 }
 
 /*
