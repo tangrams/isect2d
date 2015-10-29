@@ -44,6 +44,10 @@ struct OBB {
         update();
     }
 
+    float getAngle() const {
+        return -atan2(m_axes[1].x, m_axes[1].y);
+    }
+
     const std::array<V, 4>& getQuad() const {
         return m_quad;
     }
@@ -86,11 +90,6 @@ struct OBB {
 
 private:
 
-    void perpAxes() {
-        m_axes[0] = normalize(m_quad[2] - m_quad[3]);
-        m_axes[1] = normalize(m_quad[2] - m_quad[1]);
-    }
-
     void update() {
         V x = m_axes[0] * (m_width / 2);
         V y = m_axes[1] * (m_height / 2);
@@ -112,7 +111,7 @@ private:
 
 template<typename V>
 inline bool operator==(const OBB<V>& lh, const OBB<V>& rh) {
-    return lh.getCentroid() == rh.getCentroid() && lh.getAngle() == rh.getAngle();
+    return lh.getCentroid() == rh.getCentroid() && lh.m_axes == rh.m_axes;
 }
 
 template<typename V>
