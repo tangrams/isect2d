@@ -25,7 +25,7 @@ float width = 800;
 float height = 600;
 float dpiRatio = 1;
 
-bool pause = false;
+bool isPause = false;
 
 #ifdef USE_GLM
 using Vec2 = glm::vec2;
@@ -45,7 +45,7 @@ float rand_0_1(float scale) {
 void update() {
     double time = glfwGetTime();
 
-    if(!pause) {
+    if(!isPause) {
         int i = 0;
 
         for (auto& obb : obbs) {
@@ -68,7 +68,7 @@ void update() {
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if(key == 'P' && action == GLFW_PRESS) {
-        pause = !pause;
+        isPause = !isPause;
     }
 }
 
@@ -195,7 +195,7 @@ void render() {
     while (!glfwWindowShouldClose(window)) {
         update();
 
-        if (pause) {
+        if (isPause) {
             glfwPollEvents();
             continue;
         }

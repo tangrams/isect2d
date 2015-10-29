@@ -12,8 +12,18 @@ struct OBB {
     OBB() {}
 
     OBB(float _cx, float _cy, float _a, float _w, float _h) :
-        m_width(_w), m_height(_h), m_angle(_a),
+        m_width(_w), m_height(_h),
         m_centroid(V(_cx, _cy)) {
+        rotate(_a);
+        update();
+    }
+
+    OBB(V _center, V _normal, float _w, float _h) :
+        m_width(_w), m_height(_h),
+        m_centroid(_center) {
+
+        m_axes[0] = _normal;
+        m_axes[1] = { -_normal.y, _normal.x };
 
         update();
     }
@@ -25,9 +35,17 @@ struct OBB {
     }
 
     void rotate(float _angle) {
-        m_angle = _angle;
+        float cosa = cos(-_angle);
+        float sina = sin(-_angle);
+
+        m_axes[0] = { -cosa, sina };
+        m_axes[1] = { sina, cosa };
 
         update();
+    }
+
+    float getAngle() const {
+        return -atan2(m_axes[1].x, m_axes[1].y);
     }
 
     const std::array<V, 4>& getQuad() const {
@@ -40,10 +58,6 @@ struct OBB {
 
     const V& getCentroid() const {
         return m_centroid;
-    }
-
-    float getAngle() const {
-        return m_angle;
     }
 
     float getWidth() const {
@@ -76,50 +90,28 @@ struct OBB {
 
 private:
 
-    void perpAxes() {
-        m_axes[0] = normalize(m_quad[2] - m_quad[3]);
-        m_axes[1] = normalize(m_quad[2] - m_quad[1]);
-    }
-
     void update() {
-        V x;
-        V y;
-
-        if (m_angle == 0) {
-            x = { m_width / 2, 0 };
-            y = { 0, m_height / 2 };
-        } else {
-            float cosa = cos(m_angle);
-            float sina = sin(m_angle);
-
-            x = { cosa , sina };
-            y = { -sina, cosa };
-
-            x = x * (m_width / 2);
-            y = y * (m_height / 2);
-        }
+        V x = m_axes[0] * (m_width / 2);
+        V y = m_axes[1] * (m_height / 2);
 
         m_quad[0] = m_centroid - x - y; // lower-left
         m_quad[1] = m_centroid + x - y; // lower-right
         m_quad[2] = m_centroid + x + y; // uper-right
         m_quad[3] = m_centroid - x + y; // uper-left
-
-        perpAxes();
     }
 
     float m_width;
     float m_height;
-    float m_angle;
+    V m_centroid;
 
     std::array<V, 2> m_axes;
-    V m_centroid;
     std::array<V, 4> m_quad;
 
 };
 
 template<typename V>
 inline bool operator==(const OBB<V>& lh, const OBB<V>& rh) {
-    return lh.getCentroid() == rh.getCentroid() && lh.getAngle() == rh.getAngle();
+    return lh.getCentroid() == rh.getCentroid() && lh.m_axes == rh.m_axes;
 }
 
 template<typename V>

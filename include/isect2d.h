@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 #include <functional> // for hash function
+#include <algorithm> // for std::max
 
 #include "aabb.h"
 #include "obb.h"
@@ -60,6 +61,12 @@ struct ISect2D {
         split_y = _split.y;
         res_x = _resolution.x;
         res_y = _resolution.y;
+
+        // Ensure no division by zero
+        split_x = std::max(split_x, static_cast<i32>(1));
+        split_y = std::max(split_y, static_cast<i32>(1));
+        res_x = std::max(res_x, split_x);
+        res_y = std::max(res_y, split_y);
 
         xpad = ceil(res_x / split_x);
         ypad = ceil(res_y / split_y);
@@ -219,7 +226,7 @@ static std::unordered_set<std::pair<int, int>> intersect(const std::vector<AABB<
     }
 
     delete[] gridAABBs;
-    return std::move(pairs);
+    return pairs;
 }
 
 /*
