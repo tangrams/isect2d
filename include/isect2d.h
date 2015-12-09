@@ -1,10 +1,8 @@
 #pragma once
 
 #include <cmath>
-#include <set>
 #include <unordered_set>
 #include <vector>
-#include <array>
 #include <functional> // for hash function
 #include <algorithm> // for std::max
 
@@ -22,6 +20,30 @@ namespace std {
 
 namespace isect2d {
 
+enum class CollideRuleOption {
+    BIDIRECTIONNAL,
+    UNIDIRECTIONNAL
+};
+
+struct CollideOption {
+    CollideRuleOption rule;
+    float thresholdDistance;
+};
+
+template<typename T>
+struct CollideComponent {
+    T position;
+    int32_t group = 0x0;
+    int32_t mask = 0xffffffff;
+    void* userData;
+
+    bool operator==(const CollideComponent<T>& _cp) {
+        return _cp.position == position &&
+        _cp.group == group &&
+        _cp.mask == mask &&
+        _cp.position == position;
+    }
+};
 
 template<typename T>
 static constexpr const T clamp(T val, T min, T max) {
@@ -167,6 +189,43 @@ private:
         return key;
     }
 };
+
+template<typename V>
+static std::unordered_set<std::pair<int, int>> intersect(
+        const std::vector<CollideComponent<V>>& _components,
+        CollideOption _options) {
+    std::unordered_set<std::pair<int, int>> pairs;
+
+    if (_components.size() == 0) {
+        return pairs;
+    }
+
+    for (size_t i = 0; i < _components.size(); ++i) {
+        for (size_t j = 0; j < _components.size(); ++j) {
+            if (i == j) { continue; }
+            const CollideComponent<V>& c0 = _components[i];
+            const CollideComponent<V>& c1 = _components[j];
+            float threashold2 = pow(_options.thresholdDistance, 2);
+            float d2 = 0.f;
+
+            if ((c0.mask & c1.group) == c1.group) {
+                d2 = distance2(c1.position, c0.position);
+                if (d2 < threashold2) {
+                    pairs.insert({i, j});
+                }
+            }
+            if (_options.rule == CollideRuleOption::BIDIRECTIONNAL &&
+                (c1.mask & c0.group) == c0.group) {
+                d2 = distance2(c1.position, c0.position);
+                if (d2 < threashold2) {
+                    pairs.insert({j, i});
+                }
+            }
+        }
+    }
+
+    return pairs;
+}
 
 /*
  * Performs broadphase collision detection on _aabbs dividing the

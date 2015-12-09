@@ -3,7 +3,6 @@
 #include <cmath>
 #include <climits>
 #include <algorithm>
-#include <climits>
 
 namespace isect2d {
 

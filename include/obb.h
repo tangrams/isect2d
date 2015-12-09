@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <array>
 #include "vec.h"
 
 namespace isect2d {
@@ -48,11 +47,11 @@ struct OBB {
         return -atan2(m_axes[1].x, m_axes[1].y);
     }
 
-    const std::array<V, 4>& getQuad() const {
+    const V* getQuad() const {
         return m_quad;
     }
 
-    const std::array<V, 2>& getAxes() const{
+    const V* getAxes() const{
         return m_axes;
     }
 
@@ -104,8 +103,8 @@ private:
     float m_height;
     V m_centroid;
 
-    std::array<V, 2> m_axes;
-    std::array<V, 4> m_quad;
+    V m_axes[2];
+    V m_quad[4];
 
 };
 
@@ -125,7 +124,7 @@ static V projectToAxis(const OBB<V>& _obb, const V& axis) {
     double min = inf;
     double max = -inf;
 
-    const std::array<V, 4>& p = _obb.getQuad();
+    const V* p = _obb.getQuad();
 
     for (int i = 0; i < 4; ++i) {
         double d = dot(p[i], axis);
@@ -138,7 +137,7 @@ static V projectToAxis(const OBB<V>& _obb, const V& axis) {
 }
 
 template<typename V>
-inline static bool axisCollide(const OBB<V>& _a, const OBB<V>& _b, const std::array<V, 2>& axes) {
+inline static bool axisCollide(const OBB<V>& _a, const OBB<V>& _b, const V* axes) {
     for (int i = 0; i < 2; ++i) {
         V aproj = projectToAxis(_a, axes[i]);
         V bproj = projectToAxis(_b, axes[i]);
