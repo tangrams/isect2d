@@ -11,7 +11,6 @@
 #include "aabb.h"
 #include "obb.h"
 
-
 namespace std {
     template <>
         struct hash<pair<int32_t, int32_t>> {
@@ -22,6 +21,7 @@ namespace std {
 }
 
 namespace isect2d {
+
 
 template<typename T>
 static constexpr const T clamp(T val, T min, T max) {
@@ -79,69 +79,69 @@ struct ISect2D {
         pairMap.assign(pairMap.size(), -1);
     }
 
-/*
- * Performs broadphase collision detection on _aabbs dividing the
- * screen size _resolution by _split on X and Y dimension Returns the
- * set of colliding pairs in the _aabbs container
- */
-   void intersect(const std::vector<AABB<V>>& _aabbs) {
+    /*
+     * Performs broadphase collision detection on _aabbs dividing the
+     * screen size _resolution by _split on X and Y dimension Returns the
+     * set of colliding pairs in the _aabbs container
+     */
+    void intersect(const std::vector<AABB<V>>& _aabbs) {
 
-      clear();
+        clear();
 
-      size_t index = 0;
-      for (const auto& aabb : _aabbs) {
-          i32 x1 = aabb.min.x / xpad;
-          i32 y1 = aabb.min.y / ypad;
-          i32 x2 = aabb.max.x / xpad + 1;
-          i32 y2 = aabb.max.y / ypad + 1;
+        size_t index = 0;
+        for (const auto& aabb : _aabbs) {
+            i32 x1 = aabb.min.x / xpad;
+            i32 y1 = aabb.min.y / ypad;
+            i32 x2 = aabb.max.x / xpad + 1;
+            i32 y2 = aabb.max.y / ypad + 1;
 
-          x1 = clamp(x1, i32(0), split_x-1);
-          y1 = clamp(y1, i32(0), split_y-1);
-          x2 = clamp(x2, i32(1), split_x);
-          y2 = clamp(y2, i32(1), split_y);
+            x1 = clamp(x1, i32(0), split_x-1);
+            y1 = clamp(y1, i32(0), split_y-1);
+            x2 = clamp(x2, i32(1), split_x);
+            y2 = clamp(y2, i32(1), split_y);
 
-          for (i32 y = y1; y < y2; y++) {
-              for (i32 x = x1; x < x2; x++) {
-                  gridAABBs[x + y * split_x].push_back(index);
-              }
-          }
+            for (i32 y = y1; y < y2; y++) {
+                for (i32 x = x1; x < x2; x++) {
+                    gridAABBs[x + y * split_x].push_back(index);
+                }
+            }
 
-          index++;
-      }
+            index++;
+        }
 
-      for (auto& v : gridAABBs) {
-          if (v.empty()) { continue; }
-          // check all items against each other
-          for (size_t j = 0; j < v.size()-1; ++j) {
-              const auto& a(_aabbs[v[j]]);
+        for (auto& v : gridAABBs) {
+            if (v.empty()) { continue; }
+            // check all items against each other
+            for (size_t j = 0; j < v.size()-1; ++j) {
+                const auto& a(_aabbs[v[j]]);
 
-              for (size_t k = j + 1; k < v.size(); ++k) {
-                  const auto& b(_aabbs[v[k]]);
+                for (size_t k = j + 1; k < v.size(); ++k) {
+                    const auto& b(_aabbs[v[k]]);
 
-                  if (a.intersect(b)) {
-                      size_t key = hash_key(hash_int(v[j])<<32 | hash_int(v[k]));
-                      key &= (pairMap.size()-1);
+                    if (a.intersect(b)) {
+                        size_t key = hash_key(hash_int(v[j])<<32 | hash_int(v[k]));
+                        key &= (pairMap.size()-1);
 
-                      int i = pairMap[key];
+                        int i = pairMap[key];
 
-                      while (i != -1) {
-                          if (pairs[i].first == v[j] && pairs[i].second == v[k]) {
-                              // found
-                              break;
-                          }
-                          i = pairs[i].next;
-                      }
+                        while (i != -1) {
+                            if (pairs[i].first == v[j] && pairs[i].second == v[k]) {
+                                // found
+                                break;
+                            }
+                            i = pairs[i].next;
+                        }
 
-                      if (i == -1) {
-                          pairs.push_back(Pair{v[j], v[k], pairMap[key]});
-                          pairMap[key] = pairs.size()-1;
-                      }
-                  }
-              }
-          }
-          v.clear();
-      }
-   }
+                        if (i == -1) {
+                            pairs.push_back(Pair{v[j], v[k], pairMap[key]});
+                            pairMap[key] = pairs.size()-1;
+                        }
+                    }
+                }
+            }
+            v.clear();
+        }
+    }
 
 private:
     // from fontstash
