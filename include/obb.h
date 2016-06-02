@@ -14,16 +14,15 @@ struct OBB {
     OBB(float _cx, float _cy, float _a, float _w, float _h) :
         m_width(_w), m_height(_h),
         m_centroid(V(_cx, _cy)) {
+
         rotate(_a);
         update();
     }
 
     OBB(V _center, V _normal, float _w, float _h) :
         m_width(_w), m_height(_h),
-        m_centroid(_center) {
-
-        m_axes[0] = _normal;
-        m_axes[1] = { -_normal.y, _normal.x };
+        m_centroid(_center),
+        m_axes(_normal) {
 
         update();
     }
@@ -38,25 +37,24 @@ struct OBB {
         float cosa = cos(-_angle);
         float sina = sin(-_angle);
 
-        m_axes[0] = { -cosa, sina };
-        m_axes[1] = { sina, cosa };
+        m_axes = { -cosa, sina };
 
         update();
     }
 
     float getAngle() const {
-        return -atan2(m_axes[1].x, m_axes[1].y);
+        return -atan2(-m_axes.y, m_axes.x);
     }
 
     const std::array<V, 4>& getQuad() const {
         return m_quad;
     }
 
-    const std::array<V, 2>& getAxes() const{
+    V getAxes() const{
         return m_axes;
     }
 
-    const V& getCentroid() const {
+    V getCentroid() const {
         return m_centroid;
     }
 
@@ -91,8 +89,8 @@ struct OBB {
 private:
 
     void update() {
-        V x = m_axes[0] * (m_width / 2);
-        V y = m_axes[1] * (m_height / 2);
+        V x = m_axes * (m_width / 2);
+        V y = V{ -m_axes.y, m_axes.x } * (m_height / 2);
 
         m_quad[0] = m_centroid - x - y; // lower-left
         m_quad[1] = m_centroid + x - y; // lower-right
@@ -104,8 +102,8 @@ private:
     float m_height;
     V m_centroid;
 
-    std::array<V, 2> m_axes;
-    std::array<V, 4> m_quad;
+    V m_axes;
+    std::array<V,4> m_quad;
 
 };
 
@@ -138,14 +136,22 @@ static V projectToAxis(const OBB<V>& _obb, const V& axis) {
 }
 
 template<typename V>
-inline static bool axisCollide(const OBB<V>& _a, const OBB<V>& _b, const std::array<V, 2>& axes) {
-    for (int i = 0; i < 2; ++i) {
-        V aproj = projectToAxis(_a, axes[i]);
-        V bproj = projectToAxis(_b, axes[i]);
+inline static bool axisCollide(const OBB<V>& _a, const OBB<V>& _b, V axes) {
 
-        if (bproj.x > aproj.y || bproj.y < aproj.x) {
-            return false;
-        }
+    V aproj = projectToAxis(_a, axes);
+    V bproj = projectToAxis(_b, axes);
+
+    if (bproj.x > aproj.y || bproj.y < aproj.x) {
+        return false;
+    }
+
+    axes = V{-axes.y, axes.x};
+
+    aproj = projectToAxis(_a, axes);
+    bproj = projectToAxis(_b, axes);
+
+    if (bproj.x > aproj.y || bproj.y < aproj.x) {
+        return false;
     }
 
     return true;
