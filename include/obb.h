@@ -118,30 +118,35 @@ inline bool operator!=(const OBB<V>& lh, const OBB<V>& rh) {
 }
 
 template<typename V>
-static V projectToAxis(const OBB<V>& _obb, const V& axis) {
-    double inf = std::numeric_limits<double>::infinity();
-    double min = inf;
-    double max = -inf;
+static std::pair<typename V::value_type, typename V::value_type> projectToAxis(const OBB<V>& _obb, const V& axis) {
+    using Value = typename V::value_type;
+
+    Value inf = std::numeric_limits<Value>::infinity();
+    Value min = inf;
+    Value max = -inf;
 
     const std::array<V, 4>& p = _obb.getQuad();
 
     for (int i = 0; i < 4; ++i) {
-        double d = dot(p[i], axis);
+        Value d = dot(p[i], axis);
 
         min = std::min(min, d);
         max = std::max(max, d);
     }
 
-    return V(min, max);
+    return { min, max };
 }
 
 template<typename V>
 inline static bool axisCollide(const OBB<V>& _a, const OBB<V>& _b, V axes) {
 
-    V aproj = projectToAxis(_a, axes);
-    V bproj = projectToAxis(_b, axes);
+    using Value = typename V::value_type;
+    using Result = std::pair<Value, Value>;
 
-    if (bproj.x > aproj.y || bproj.y < aproj.x) {
+    Result aproj = projectToAxis(_a, axes);
+    Result bproj = projectToAxis(_b, axes);
+
+    if (aproj.second < bproj.first || bproj.second < aproj.first) {
         return false;
     }
 
@@ -150,7 +155,7 @@ inline static bool axisCollide(const OBB<V>& _a, const OBB<V>& _b, V axes) {
     aproj = projectToAxis(_a, axes);
     bproj = projectToAxis(_b, axes);
 
-    if (bproj.x > aproj.y || bproj.y < aproj.x) {
+    if (aproj.second < bproj.first || bproj.second < aproj.first) {
         return false;
     }
 
