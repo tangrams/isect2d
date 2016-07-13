@@ -51,6 +51,7 @@ struct ISect2D {
     std::vector<std::vector<int32_t>> gridAABBs;
     std::vector<Pair> pairs;
     std::vector<int> pairMap;
+    std::vector<AABB<V>> aabbs;
 
     ISect2D(size_t collisionHashSize = 2048) {
         pairMap.assign(collisionHashSize, -1);
@@ -77,6 +78,76 @@ struct ISect2D {
     void clear() {
         pairs.clear();
         pairMap.assign(pairMap.size(), -1);
+
+        aabbs.clear();
+
+        for (auto& grid : gridAABBs){
+            grid.clear();
+        }
+    }
+
+    void intersect(const AABB<V>& _aabb,
+                   std::function<bool(const AABB<V>& _aabb, const AABB<V>& _other)> _cb,
+                   bool _insert = true) {
+
+        i32 x1 = _aabb.min.x / xpad;
+        i32 y1 = _aabb.min.y / ypad;
+        i32 x2 = _aabb.max.x / xpad + 1;
+        i32 y2 = _aabb.max.y / ypad + 1;
+
+        x1 = clamp(x1, i32(0), split_x-1);
+        y1 = clamp(y1, i32(0), split_y-1);
+        x2 = clamp(x2, i32(1), split_x);
+        y2 = clamp(y2, i32(1), split_y);
+
+        for (i32 y = y1; y < y2; y++) {
+            for (i32 x = x1; x < x2; x++) {
+
+                auto& v = gridAABBs[x + y * split_x];
+
+                for (int32_t i : v) {
+                    const auto& other = aabbs[i];
+
+                    if (_aabb.intersect(other)) {
+                        if (!_cb(_aabb, other)) {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (_insert) {
+            aabbs.push_back(_aabb);
+            int index = aabbs.size() - 1;
+
+            for (i32 y = y1; y < y2; y++) {
+                for (i32 x = x1; x < x2; x++) {
+                    gridAABBs[x + y * split_x].push_back(index);
+                }
+            }
+        }
+    }
+
+    void insert(const AABB<V>& _aabb) {
+        i32 x1 = _aabb.min.x / xpad;
+        i32 y1 = _aabb.min.y / ypad;
+        i32 x2 = _aabb.max.x / xpad + 1;
+        i32 y2 = _aabb.max.y / ypad + 1;
+
+        x1 = clamp(x1, i32(0), split_x-1);
+        y1 = clamp(y1, i32(0), split_y-1);
+        x2 = clamp(x2, i32(1), split_x);
+        y2 = clamp(y2, i32(1), split_y);
+
+        aabbs.push_back(_aabb);
+        int index = aabbs.size() - 1;
+
+        for (i32 y = y1; y < y2; y++) {
+            for (i32 x = x1; x < x2; x++) {
+                gridAABBs[x + y * split_x].push_back(index);
+            }
+        }
     }
 
 /*
