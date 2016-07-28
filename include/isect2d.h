@@ -41,12 +41,12 @@ struct ISect2D {
         int next;
     };
 
-    i32 split_x;
-    i32 split_y;
-    i32 res_x;
-    i32 res_y;
-    i32 xpad;
-    i32 ypad;
+    i32 split_x = 0;
+    i32 split_y = 0;
+    i32 res_x = 0;
+    i32 res_y = 0;
+    i32 xpad = 0;
+    i32 ypad = 0;
 
     std::vector<std::vector<int32_t>> gridAABBs;
     std::vector<Pair> pairs;
@@ -69,8 +69,8 @@ struct ISect2D {
         res_x = std::max(res_x, split_x);
         res_y = std::max(res_y, split_y);
 
-        xpad = ceil(res_x / split_x);
-        ypad = ceil(res_y / split_y);
+        xpad = res_x / split_x;
+        ypad = res_y / split_y;
 
         gridAABBs.resize(split_x * split_y);
     }

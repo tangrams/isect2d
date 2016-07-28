@@ -53,7 +53,7 @@ struct AABB {
         max.y = std::max(max.y, _y);
     }
 
-    void* m_userData;
+    void* m_userData = nullptr;
 
     V min;
     V max;

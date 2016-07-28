@@ -9,7 +9,7 @@ namespace isect2d {
 template<typename V>
 struct OBB {
 
-    OBB() {}
+    OBB() : m_width(0), m_height(0) {}
 
     OBB(float _cx, float _cy, float _a, float _w, float _h) :
         m_width(_w), m_height(_h),
